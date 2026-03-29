@@ -208,14 +208,36 @@
                     </div>
                 </section>
 
-                <!-- Featured Listings -->
+                <!-- Row 1: Coups de cœur (mix) -->
                 <section class="section">
                     <div class="section-header">
-                        <h2 class="section-title">Expériences populaires</h2>
-                        <a href="#" class="see-all">Tout voir</a>
+                        <h2 class="section-title">⭐ Coups de cœur</h2>
+                        <a href="#" class="see-all" onclick="navigateTo('search');return false;">Tout voir</a>
                     </div>
                     <div class="listings-scroll" id="featured-listings">
-                        <!-- Listings will be injected by JS -->
+                        <!-- Mixed listings injected by JS -->
+                    </div>
+                </section>
+
+                <!-- Row 2: Hébergements -->
+                <section class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">🏠 Hébergements</h2>
+                        <a href="#" class="see-all" onclick="navigateTo('search');return false;">Tout voir</a>
+                    </div>
+                    <div class="listings-scroll" id="home-lodging-listings">
+                        <!-- Lodging listings injected by JS -->
+                    </div>
+                </section>
+
+                <!-- Row 3: Activités -->
+                <section class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">🎯 Activités</h2>
+                        <a href="#" class="see-all" onclick="navigateTo('search');return false;">Tout voir</a>
+                    </div>
+                    <div class="listings-scroll" id="home-activity-listings">
+                        <!-- Activity listings injected by JS -->
                     </div>
                 </section>
 

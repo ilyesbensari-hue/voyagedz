@@ -111,10 +111,32 @@ function renderCities() {
 }
 
 function renderFeaturedListings() {
+    // Row 1 — Coups de cœur (mix, best rated)
     const container = document.getElementById('featured-listings');
-    // Exclude packs from featured listings
-    const featured = appData.listings.filter(l => l.rating >= 4.7 && l.type !== 'pack').slice(0, 6);
-    container.innerHTML = featured.map(listing => createListingCard(listing)).join('');
+    if (container) {
+        const featured = appData.listings.filter(l => l.rating >= 4.7 && l.type !== 'pack').slice(0, 8);
+        container.innerHTML = featured.length
+            ? featured.map(listing => createListingCard(listing)).join('')
+            : '<p style="padding:1rem;color:var(--text-secondary)">Aucune expérience disponible</p>';
+    }
+
+    // Row 2 — Hébergements
+    const lodgingContainer = document.getElementById('home-lodging-listings');
+    if (lodgingContainer) {
+        const lodgings = appData.listings.filter(l => l.type === 'lodging' && l.type !== 'pack').slice(0, 8);
+        lodgingContainer.innerHTML = lodgings.length
+            ? lodgings.map(listing => createListingCard(listing)).join('')
+            : '<p style="padding:1rem;color:var(--text-secondary)">Aucun hébergement disponible</p>';
+    }
+
+    // Row 3 — Activités
+    const activityContainer = document.getElementById('home-activity-listings');
+    if (activityContainer) {
+        const activities = appData.listings.filter(l => l.type === 'activity' && l.type !== 'pack').slice(0, 8);
+        activityContainer.innerHTML = activities.length
+            ? activities.map(listing => createListingCard(listing)).join('')
+            : '<p style="padding:1rem;color:var(--text-secondary)">Aucune activité disponible</p>';
+    }
 }
 
 function renderSearchResults(filter = 'all') {

@@ -6,7 +6,8 @@
     "scripts": {
         "start": "node server.js",
         "dev": "node --watch server.js",
-        "init-db": "node init-db.js"
+        "init-db": "node init-db.js",
+        "init-pg": "node init-pg.js"
     },
     "keywords": [
         "algeria",
@@ -17,17 +18,18 @@
     "author": "Voyage DZ",
     "license": "MIT",
     "dependencies": {
-        "express": "^4.18.2",
-        "cors": "^2.8.5",
         "bcryptjs": "^2.4.3",
-        "jsonwebtoken": "^9.0.2",
         "better-sqlite3": "^9.2.2",
-        "multer": "^1.4.5-lts.1",
-        "uuid": "^9.0.1",
-        "passport": "^0.7.0",
-        "passport-google-oauth20": "^2.0.0",
-        "passport-facebook": "^3.0.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.18.2",
         "express-session": "^1.18.0",
-        "dotenv": "^16.4.5"
+        "jsonwebtoken": "^9.0.2",
+        "multer": "^1.4.5-lts.1",
+        "passport": "^0.7.0",
+        "passport-facebook": "^3.0.0",
+        "passport-google-oauth20": "^2.0.0",
+        "pg": "^8.20.0",
+        "uuid": "^9.0.1"
     }
 }
