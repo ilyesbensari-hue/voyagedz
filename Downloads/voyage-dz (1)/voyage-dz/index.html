@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="Découvrez Alger, Oran et Tlemcen - Réservez logements et activités">
+
+    <title>Voyage DZ - Découvrez l'Algérie</title>
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Voyage DZ">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css?v=11">
+    <link rel="stylesheet" href="host-dashboard.css">
+    <link rel="stylesheet" href="mode-switcher.css">
+    <link rel="stylesheet" href="header-auth.css">
+    <link rel="stylesheet" href="onboarding-flow.css">
+    <link rel="stylesheet" href="activity-styles.css">
+
+    <!-- Flatpickr - Interactive Calendar -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+
+    <!-- Leaflet - Interactive Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-logo">
+            <div class="pulse-ring"></div>
+            <div class="loading-text">Voyage DZ</div>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div id="app" style="display: none;">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">Voyage DZ</div>
+
+                <!-- Mode Switcher (Voyageur ↔ Hôte) -->
+                <div class="mode-switcher" id="mode-switcher" style="display: none;">
+                    <button class="mode-btn active" data-mode="traveler" id="traveler-mode-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                            </path>
+                            <path d="M2 12h20"></path>
+                        </svg>
+                        <span>Voyageur</span>
+                    </button>
+                    <button class="mode-btn" data-mode="host" id="host-mode-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        <span>Hôte</span>
+                    </button>
+                </div>
+
+                <div class="header-actions">
+                    <div id="auth-buttons" class="auth-buttons">
+                        <button class="btn-auth" onclick="showLoginModal()">Connexion</button>
+                    </div>
+                    <div id="user-menu" class="user-menu-container" style="display: none;">
+                        <div class="user-menu-wrapper">
+                            <button class="icon-btn user-menu-toggle" id="user-menu-btn">
+                                <div class="avatar" id="user-avatar">IB</div>
+                            </button>
+                            <!-- Dropdown Menu -->
+                            <div class="user-dropdown" id="user-dropdown" style="display: none;">
+                                <div class="user-dropdown-header">
+                                    <div class="avatar-large" id="dropdown-avatar">IB</div>
+                                    <div class="user-info">
+                                        <div class="user-name" id="dropdown-name">Utilisateur</div>
+                                        <div class="user-email" id="dropdown-email">email@example.com</div>
+                                    </div>
+                                </div>
+                                <div class="user-dropdown-divider"></div>
+                                <div class="user-dropdown-menu">
+                                    <button class="dropdown-item" onclick="navigateTo('profile');closeUserDropdown()">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        <span>Mon Profil</span>
+                                    </button>
+
+                                    <!-- Devenir Hôte - Shows only for non-host users -->
+                                    <button id="become-host-item" class="dropdown-item become-host-btn"
+                                        onclick="becomeHost();closeUserDropdown()" style="display:none;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                        </svg>
+                                        <span>🏠 Devenir Hôte</span>
+                                    </button>
+
+                                    <!-- Dynamic Items -->
+                                    <button id="bookings-profile-item" class="dropdown-item"
+                                        onclick="navigateTo('profile');closeUserDropdown()" style="display:none;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                        <span>Mes réservations</span>
+                                    </button>
+
+                                    <button id="my-listings-profile-item" class="dropdown-item"
+                                        onclick="navigateTo('host-dashboard');closeUserDropdown()"
+                                        style="display:none;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                        </svg>
+                                        <span>Mes annonces</span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-divider"></div>
+                                <div class="user-dropdown-menu">
+                                    <button class="dropdown-item logout-item" onclick="handleLogout()">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        <span>Déconnexion</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Home Page -->
+            <div id="home-page" class="page active">
+                <!-- Hero Section -->
+                <section class="hero">
+                    <div class="hero-content">
+                        <h1 class="hero-title">Découvrez<br>l'Algérie</h1>
+                        <p class="hero-subtitle">Logements · Activités · Expériences</p>
+                    </div>
+                    <div class="hero-gradient"></div>
+                </section>
+
+                <!-- Search Bar -->
+                <div class="hero-search-simple"
+                    style="display: flex; gap: 1rem; max-width: 600px; margin: -30px auto 0; position: relative; z-index: 10;">
+                    <select id="hero-city-select" class="city-dropdown-large"
+                        style="flex: 1; padding: 1.5rem; border-radius: 1.5rem; border: none; font-size: 1.2rem; background: rgba(255,255,255,0.95); box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor: pointer; color: #1a1a2e;">
+                        <option value="">📍 Choisir une destination...</option>
+                        <!-- Dynamic population via app.js -->
+                    </select>
+
+                    <input type="text" id="hero-dates-picker" placeholder="📅 Sélectionner les dates..." readonly
+                        style="flex: 1; padding: 1.5rem; border-radius: 1.5rem; border: none; font-size: 1rem; background: rgba(255,255,255,0.95); box-shadow: 0 10px 30px rgba(0,0,0,0.2); color: #1a1a2e; cursor: pointer; min-width: 220px;">
+
+                    <button id="hero-go-btn" class="btn-primary"
+                        style="padding: 0 2rem; border-radius: 1.5rem; font-size: 1.2rem; box-shadow: 0 10px 30px rgba(230, 57, 70, 0.4);">
+                        Explorer
+                    </button>
+                </div>
+
+                <!-- Cities Section -->
+                <section class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Destinations</h2>
+                        <a href="#" class="see-all">Tout voir</a>
+                    </div>
+                    <div class="cities-grid" id="cities-grid">
+                        <!-- Cities will be injected by JS -->
+                    </div>
+                </section>
+
+                <!-- Featured Listings -->
+                <section class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Expériences populaires</h2>
+                        <a href="#" class="see-all">Tout voir</a>
+                    </div>
+                    <div class="listings-scroll" id="featured-listings">
+                        <!-- Listings will be injected by JS -->
+                    </div>
+                </section>
+
+
+            </div>
+
+            <!-- Search Results Page -->
+            <div id="search-page" class="page">
+                <div class="page-header">
+                    <button class="back-btn" onclick="navigateTo('home')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h2 class="page-title">Découvrir</h2>
+
+                </div>
+
+                <div class="filters-bar" style="flex-wrap: wrap; gap: 0.5rem;">
+                    <select id="search-city-filter"
+                        style="padding: 0.5rem 1rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: var(--text-primary); font-size: 0.9rem; cursor: pointer;">
+                        <option value="">🏙️ Toutes les villes</option>
+                        <!-- Dynamic population via app.js -->
+                    </select>
+                    <button class="filter-chip active" data-filter="all">Tout</button>
+                    <button class="filter-chip" data-filter="lodging">Hébergements</button>
+                    <button class="filter-chip" data-filter="activities">Activités</button>
+                </div>
+
+                <!-- Advanced Filters Panel -->
+                <div id="advanced-filters" style="padding: 0 var(--spacing-lg); margin-bottom: var(--spacing-md);">
+                    <div
+                        style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: var(--spacing-md);">
+
+                        <!-- Price Range Filter -->
+                        <div style="margin-bottom: 1rem;">
+                            <label
+                                style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                💰 Prix par nuit: <span id="price-range-display">0 - 50,000 DA</span>
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="range" id="price-min" min="0" max="50000" value="0" step="1000"
+                                    style="flex: 1; accent-color: var(--primary);">
+                                <input type="range" id="price-max" min="0" max="50000" value="50000" step="1000"
+                                    style="flex: 1; accent-color: var(--primary);">
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Filters (Injected by JS) -->
+                        <div id="dynamic-filters-container">
+                            <!-- Content will be updated by updateDynamicFilters(category) -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Toggle: List / Map -->
+                <div style="padding: 0 var(--spacing-lg); margin-bottom: var(--spacing-md);">
+                    <div class="view-toggle" style="display: flex; gap: 0.5rem;">
+                        <button id="view-list-btn" class="view-btn active" onclick="toggleView('list')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg>
+                            Liste
+                        </button>
+                        <button id="view-map-btn" class="view-btn" onclick="toggleView('map')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                                <line x1="8" y1="2" x2="8" y2="18"></line>
+                                <line x1="16" y1="6" x2="16" y2="22"></line>
+                            </svg>
+                            Carte
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date Picker in Discover Page -->
+                <div class="search-dates-reminder"
+                    style="padding: 0 var(--spacing-lg); margin-bottom: var(--spacing-md);">
+                    <div id="discover-dates-container"
+                        style="background: linear-gradient(135deg, rgba(230, 57, 70, 0.1), rgba(255,255,255,0.05)); border: 1px solid rgba(230, 57, 70, 0.3); border-radius: var(--radius-md); padding: var(--spacing-md); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md);">
+                        <div style="display: flex; align-items: center; gap: var(--spacing-sm); flex: 1;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+                                stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <input type="text" id="discover-dates-picker" readonly
+                                placeholder="📅 Sélectionnez vos dates de séjour..."
+                                style="flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 0.95rem; cursor: pointer; outline: none;">
+                        </div>
+                        <span id="search-dates-display"
+                            style="color: var(--text-secondary); font-size: 0.85rem; display: none;"></span>
+                    </div>
+                    <div id="discover-dates-message"
+                        style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(255, 193, 7, 0.1); border-radius: var(--radius-sm); color: #ffc107; font-size: 0.85rem; text-align: center;">
+                        ⚠️ Sélectionnez des dates pour voir les disponibilités et calculer les prix
+                    </div>
+                </div>
+
+                <!-- List View -->
+                <div id="list-view" class="listings-grid" style="padding: 0 var(--spacing-lg);">
+                    <!-- Results will be injected by JS -->
+                </div>
+                <div id="search-results" style="display: none;"></div>
+
+                <!-- Map View -->
+                <div id="map-view" style="display: none; padding: 0 var(--spacing-lg);">
+                    <div id="listings-map"
+                        style="height: 500px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                    </div>
+                    <div id="map-listings-preview" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+
+            <!-- Favorites Page (Fixed Structure - was nested in detail page) -->
+            <div id="favorites-page" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Favoris</h2>
+                </div>
+                <div class="favorites-grid" id="favorites-grid">
+                    <div class="empty-state">
+                        <div class="empty-icon">❤️</div>
+                        <h3>Aucun favori</h3>
+                        <p>Ajoutez vos expériences préférées ici</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Listing Detail Page -->
+            <div id="detail-page" class="page">
+                <div class="detail-header">
+                    <button class="back-btn glass" onclick="navigateTo('search')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button class="listing-fav-btn glass" id="detail-fav-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- Content injected by JS -->
+                <div id="detail-content"></div>
+
+                <!-- Booking bar removed - now integrated in detail content with Flatpickr calendar -->
+            </div>
+
+            <!-- Profile Page -->
+            <div id="profile-page" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Profil</h2>
+                </div>
+                <div class="profile-content">
+                    <div class="profile-avatar-large" id="profile-avatar-display">IB</div>
+                    <h3 class="profile-name" id="profile-name-display">Ismael Bensari</h3>
+                    <p class="profile-email" id="profile-email-display">i.bensari@example.com</p>
+
+                    <!-- Stats Container -->
+                    <div id="profile-stats" style="margin: 1.5rem 0;"></div>
+
+                    <div class="profile-menu">
+                        <div class="menu-item" onclick="navigateTo('bookings')">
+                            <span>Mes réservations</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
+                        </div>
+
+                        <!-- Devenir Hôte - Only for non-hosts -->
+                        <div class="menu-item" onclick="becomeHost()" id="become-host-profile-page-item"
+                            style="display:none;">
+                            <span>🏠 Devenir hôte</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
+                        </div>
+
+                        <!-- Mes annonces - Only for hosts -->
+                        <div class="menu-item" onclick="showMyListingsInProfile()" id="my-listings-profile-page-item"
+                            style="display:none;">
+                            <span>🏠 Mes annonces</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
+                        </div>
+                        <div class="menu-item">
+                            <span>Paramètres</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
+                        </div>
+                        <div class="menu-item">
+                            <span>Aide</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
+                        </div>
+                        <div class="menu-item logout-item" onclick="handleLogout()"
+                            style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                            <span style="color: var(--error);">Déconnexion</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--error)"
+                                stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bookings Page (MES RÉSERVATIONS) -->
+            <div id="bookings-page" class="page">
+                <div class="page-header">
+                    <button class="back-btn" onclick="navigateTo('profile')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h2 class="page-title">Mes Réservations</h2>
+                </div>
+
+                <div id="bookings-list" style="padding: 0 var(--spacing-lg);">
+                    <!-- Bookings will be injected by JS -->
+                    <div class="empty-state" id="bookings-empty-state">
+                        <div class="empty-icon">📅</div>
+                        <h3>Aucune réservation</h3>
+                        <p>Vos réservations apparaîtront ici</p>
+                        <button class="btn-primary" onclick="navigateTo('search')" style="margin-top: 1rem;">
+                            Explorer les logements
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Host Dashboard Page -->
+            <div id="host-dashboard-page" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">🏠 Tableau de Bord Hôte</h2>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="host-stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="host-revenue">0 DA</span>
+                            <span class="stat-label">Revenus ce mois</span>
+                            <span class="stat-change positive">+12%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="host-bookings">0</span>
+                            <span class="stat-label">Réservations</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="host-rating">5.0</span>
+                            <span class="stat-label">Note moyenne</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="host-occupancy">0%</span>
+                            <span class="stat-label">Taux d'occupation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="host-actions">
+                    <button class="btn-primary" onclick="openCreateListingModal()" style="flex: 1;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="margin-right: 8px;">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Créer une annonce
+                    </button>
+                    <button class="btn-secondary" onclick="showHostCalendar()" style="flex: 1;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="margin-right: 8px;">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Calendrier
+                    </button>
+                </div>
+
+                <!-- Mes Annonces Section -->
+                <div class="host-listings-section">
+                    <div class="section-header">
+                        <h3>Mes Annonces</h3>
+                        <span class="listings-count" id="host-listings-count">0 annonce(s)</span>
+                    </div>
+                    <div id="host-listings-grid" class="host-listings-grid">
+                        <!-- Annonces injectées par JavaScript -->
+                        <div class="empty-state">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            </svg>
+                            <p>Vous n'avez pas encore d'annonces</p>
+                            <button class="btn-primary" onclick="openCreateListingModal()">Créer votre première
+                                annonce</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- Footer -->
+            <footer class="app-footer"
+                style="padding: 2rem 1rem 6rem; background: var(--bg-secondary); margin-top: 2rem;">
+                <div class="footer-content"
+                    style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem;">
+
+                    <!-- Colonne 1: Brand -->
+                    <div class="footer-section">
+                        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Voyage DZ</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">Découvrez la
+                            beauté de l'Algérie avec nous.</p>
+                    </div>
+
+                    <!-- Colonne 2: Liens Rapides -->
+                    <div class="footer-section">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Liens Rapides</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                            <a href="javascript:void(0)" style="color: var(--text-secondary); text-decoration: none;">À
+                                propos</a>
+                            <a href="javascript:void(0)" onclick="contactHost()"
+                                style="color: var(--text-secondary); text-decoration: none;">Contactez-nous</a>
+                        </div>
+                    </div>
+
+                    <!-- Colonne 3: Légal -->
+                    <div class="footer-section">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Légal</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                            <a href="javascript:void(0)"
+                                style="color: var(--text-secondary); text-decoration: none;">Confidentialité &
+                                Conditions</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Bottom -->
+                <div class="footer-bottom"
+                    style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.05); color: var(--text-secondary); font-size: 0.8rem;">
+                    © 2026 Voyage DZ. Tous droits réservés.
+
+                    <!-- TEMP ADMIN BUTTON -->
+                    <div style="margin-top: 20px; opacity: 0.5;">
+                        <button onclick="seedDatabase()"
+                            style="background: #333; color: #fff; border: 1px solid #555; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;">
+                            🛠️ SEED
+                        </button>
+                        <button onclick="toggleAdminMode()"
+                            style="background: #E07B53; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; margin-left: 5px;">
+                            👑 ADMIN
+                        </button>
+                    </div>
+                </div>
+            </footer>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-page="home">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <span>Accueil</span>
+            </button>
+            <button class="nav-item" data-page="search">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                </svg>
+                <span>Explorer</span>
+            </button>
+            <!-- Host Tab - Moved next to Explorer -->
+            <button class="nav-item" data-page="host-dashboard" id="host-nav-tab" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <span>Annonces</span>
+            </button>
+            <button class="nav-item" data-page="favorites">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                <span>Favoris</span>
+            </button>
+            <button class="nav-item" data-page="profile" id="nav-profile-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+                <span>Profil</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Payment Modal (Hidden by default) -->
+    <div id="payment-modal" class="modal">
+        <div class="modal-overlay" onclick="closeBookingPaymentModal()"></div>
+        <div class="modal-content payment-modal-content">
+            <div class="modal-header">
+                <h2 class="section-title" style="margin: 0;">💳 Paiement Sécurisé</h2>
+                <button class="close-btn" onclick="closeBookingPaymentModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="payment-summary-card">
+                    <div class="summary-row">
+                        <span>Total à payer</span>
+                        <span class="summary-amount" id="payment-total-amount">0 DA</span>
+                    </div>
+                </div>
+
+                <h3 style="margin: 1.5rem 0 1rem;">Moyen de paiement</h3>
+
+                <div class="payment-methods">
+                    <label class="payment-method-card">
+                        <input type="radio" name="payment" value="dahabia" checked>
+                        <div class="card-content">
+                            <div class="card-icon">💳</div>
+                            <span class="card-name">Carte Dahabia</span>
+                        </div>
+                    </label>
+
+                    <label class="payment-method-card">
+                        <input type="radio" name="payment" value="cib">
+                        <div class="card-content">
+                            <div class="card-icon">🏦</div>
+                            <span class="card-name">Carte CIB</span>
+                        </div>
+                    </label>
+
+                    <label class="payment-method-card">
+                        <input type="radio" name="payment" value="visa">
+                        <div class="card-content">
+                            <div class="card-icon">🌍</div>
+                            <span class="card-name">Visa / Mastercard</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="payment-secure-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a9d8f" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    Paiement chiffré et sécurisé par SATIM
+                </div>
+
+                <button class="btn-primary btn-full" onclick="processBookingPayment()" style="margin-top: 1.5rem;">
+                    Confirmer le paiement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Onboarding Modal (Multi-Step Flow) -->
+    <div id="onboarding-modal" class="modal">
+        <div class="modal-overlay" onclick="closeOnboardingModal()"></div>
+        <div class="modal-content large-modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Créer une nouvelle annonce</h2>
+                <button class="close-btn" onclick="closeOnboardingModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Content will be injected by onboarding-flow.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-overlay" onclick="hideDetailModal()"></div>
+        <div class="modal-content listing-detail-modal">
+            <button class="close-btn" onclick="hideDetailModal()">&times;</button>
+            <div id="detail-content">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-overlay" onclick="closeLoginModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Bienvenue</h2>
+                <button class="close-btn" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- LOGIN FORM CONTAINER -->
+                <div id="login-form-container">
+                    <div class="social-login"
+                        style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn-social btn-facebook" onclick="loginWithFacebook()"
+                            style="background: #1877f2; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                            </svg>
+                            Continuer avec Facebook
+                        </button>
+                        <button class="btn-social btn-google" onclick="loginWithGoogle()"
+                            style="background: white; color: #757575; border: 1px solid #ddd; padding: 12px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M23.5 12.238c0-.825-.075-1.613-.2-2.388H12v4.513h6.463c-.275 1.55-.7 2.675-1.488 3.538l-.013.088 3.55 2.762.25.025c2.2-2.038 3.488-5.063 3.488-8.538z"
+                                    fill="#4285F4" />
+                                <path
+                                    d="M12 24c3.238 0 5.963-1.075 7.938-2.912l-3.8-2.888c-1.075.725-2.45 1.15-4.138 1.15-3.188 0-5.888-2.15-6.85-5.238l-.088.012-3.812 2.963-.038.087C3.125 20.9 7.213 24 12 24z"
+                                    fill="#34A853" />
+                                <path
+                                    d="M5.15 12.913c-.25-.763-.4-1.575-.4-2.413 0-.838.15-1.65.4-2.413l.012-.1-3.837-3.05-.075.063C.45 6.963 0 9.4 0 12c0 2.6.45 5.038 1.25 7.15l3.9-3.238z"
+                                    fill="#FBBC05" />
+                                <path
+                                    d="M12 4.75c1.763 0 3.35.612 4.6 1.8l3.425-3.425C17.963 1.188 15.238 0 12 0 7.213 0 3.125 3.1 1.25 7.15l3.838 3.05c.962-3.088 3.662-5.45 6.912-5.45z"
+                                    fill="#EA4335" />
+                            </svg>
+                            Continuer avec Google
+                        </button>
+                        <div style="text-align: center; margin: 10px 0; color: #aaa; font-size: 0.9rem;">ou avec email
+                        </div>
+                    </div>
+                    <form id="login-form" onsubmit="handleLogin(event); return false;">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="login-email" required placeholder="nom@exemple.com"
+                                value="host@voyagedz.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Mot de passe</label>
+                            <input type="password" id="login-password" required placeholder="Votre mot de passe"
+                                value="password123">
+                        </div>
+                        <div class="form-actions">
+                            <a href="javascript:void(0)" class="forgot-password"
+                                onclick="alert('Fonctionnalité à venir')">Mot de passe
+                                oublié ?</a>
+                        </div>
+                        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 20px;">
+                            Se connecter
+                        </button>
+                        <div class="signup-link">
+                            Pas encore de compte ? <a href="javascript:void(0)"
+                                onclick="toggleAuthMode('register')">S'inscrire</a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- REGISTER FORM CONTAINER -->
+                <div id="register-form-container" style="display: none;">
+                    <form id="register-form" onsubmit="return false;">
+                        <div class="form-group">
+                            <label>Nom complet</label>
+                            <input type="text" id="register-name" required placeholder="Ex: Amine Z."
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="register-email" required placeholder="nom@exemple.com"
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Mot de passe</label>
+                            <input type="password" id="register-password" required placeholder="8 caractères min."
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
+                        <button type="button" class="btn-primary" style="width: 100%; margin-top: 20px;"
+                            onclick="handleRegister(event)">
+                            Créer mon compte
+                        </button>
+                        <div class="signup-link">
+                            Déjà un compte ? <a href="#" onclick="toggleAuthMode('login')">Se connecter</a>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Data files -->
+    <!-- 📸 Images Configuration - EDIT THIS FILE TO CHANGE PHOTOS -->
+    <script src="images-config.js"></script>
+    <script src="hotels-data.js?v=4"></script>
+    <script src="data.js?v=5"></script>
+
+    <!-- API (100% Frontend - No Backend Required) -->
+    <script src="api.js?v=2000"></script>
+    <script src="auth.js?v=1007"></script>
+    <script src="amadeusClient.js?v=7"></script>
+
+    <!-- Flatpickr Library -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+
+    <!-- Calendar Module -->
+    <script src="calendar.js"></script>
+
+    <!-- Booking System (Réservations) -->
+    <script src="booking-system-v2.js?v=1000"></script>
+
+    <!-- Leaflet Maps Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- Core Logic -->
+
+    <!-- Map Module -->
+    <script src="map.js"></script>
+
+    <!-- NEW: Host Onboarding System -->
+    <script src="pricing-assistant.js"></script>
+    <script src="host-calendar-manager.js"></script>
+    <script src="onboarding-flow.js"></script>
+
+    <!-- Activity System (GetYourGuide Style) -->
+    <script src="activity-manager.js"></script>
+    <script src="image-manager.js"></script>
+    <script src="activity-detail.js"></script>
+
+    <!-- Admin Image Editor -->
+    <script src="admin-images.js"></script>
+
+    <!-- Listing Manager (Host CRUD) -->
+    <script src="listing-manager.js"></script>
+
+    <!-- New Feature Modules -->
+    <script src="i18n.js"></script>
+    <script src="messaging.js"></script>
+    <script src="advanced-search.js"></script>
+
+    <!-- Main App -->
+
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('✅ Service Worker registered'))
+                .catch(err => console.log('❌ SW registration failed:', err));
+        }
+    </script>
+    <script src="image-cropper.js"></script>
+    <script src="app.js?v=1010"></script>
+</body>
+
+</html>
+```
