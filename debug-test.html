@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test Debug - Voyage DZ</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+
+        #log {
+            background: #222;
+            padding: 10px;
+            margin-top: 20px;
+            white-space: pre;
+            font-size: 12px;
+            height: 300px;
+            overflow-y: auto;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: none;
+            margin: 5px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #e63946;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .success {
+            color: #4caf50;
+        }
+
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Debug - Voyage DZ</h1>
+
+    <h2>1. Test Calendrier Hero</h2>
+    <input type="text" id="test-dates-picker" placeholder="Cliquez pour sélectionner des dates..." readonly>
+    <div id="dates-result">Dates: Non sélectionnées</div>
+
+    <h2>2. Test Réservation</h2>
+    <button onclick="testShowDetail()">Simuler showDetail(1)</button>
+    <button onclick="testBooking()">Simuler handleBooking()</button>
+
+    <h2>3. Test Création Annonce</h2>
+    <button onclick="testCreateListing()">Créer une annonce test</button>
+    <button onclick="testRenderListings()">Afficher les annonces</button>
+
+    <div id="log"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+    <script src="data.js"></script>
+    <script>
+        // Logger
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const typeClass = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            logEl.innerHTML += `<span class="${typeClass}">[${time}] ${msg}</span>\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // Global selectedDates
+        let selectedDates = { from: null, to: null };
+        log('selectedDates initialisé: ' + JSON.stringify(selectedDates));
+
+        // Init Flatpickr
+        try {
+            const fp = flatpickr('#test-dates-picker', {
+                mode: 'range',
+                minDate: 'today',
+                dateFormat: 'd M Y',
+                locale: 'fr',
+                showMonths: 2,
+                onChange: (dates) => {
+                    if (dates.length === 2) {
+                        selectedDates.from = dates[0].toISOString().split('T')[0];
+                        selectedDates.to = dates[1].toISOString().split('T')[0];
+                        log('✅ Dates sélectionnées: ' + JSON.stringify(selectedDates), 'success');
+                        document.getElementById('dates-result').textContent = 'Dates: ' + selectedDates.from + ' → ' + selectedDates.to;
+                    }
+                }
+            });
+            log('✅ Flatpickr initialisé', 'success');
+        } catch (e) {
+            log('❌ Erreur Flatpickr: ' + e.message, 'error');
+        }
+
+        // Test showDetail
+        function testShowDetail() {
+            log('--- Test showDetail ---');
+            if (!selectedDates.from || !selectedDates.to) {
+                log('⚠️ selectedDates vide: ' + JSON.stringify(selectedDates), 'error');
+                return;
+            }
+
+            const listing = appData.listings.find(l => l.id === 1);
+            if (!listing) {
+                log('❌ Listing 1 non trouvé', 'error');
+                return;
+            }
+
+            log('Listing trouvé: ' + listing.title);
+
+            const fromDate = new Date(selectedDates.from);
+            const toDate = new Date(selectedDates.to);
+            const nights = Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24));
+            log('Nuits calculées: ' + nights);
+
+            const priceMatch = listing.price.match(/[\d,]+/);
+            const pricePerNight = priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : 0;
+            log('Prix par nuit: ' + pricePerNight);
+
+            const total = (pricePerNight * nights) * 1.05;
+            log('✅ Total calculé: ' + total.toFixed(2) + ' DZD', 'success');
+        }
+
+        // Test handleBooking
+        function testBooking() {
+            log('--- Test handleBooking ---');
+
+            if (!selectedDates.from || !selectedDates.to) {
+                log('⚠️ Pas de dates -> alerte "Veuillez sélectionner des dates"', 'error');
+                alert('⚠️ Veuillez sélectionner des dates');
+                return;
+            }
+
+            log('✅ Dates OK: ' + selectedDates.from + ' → ' + selectedDates.to, 'success');
+            log('✅ handleBooking passerait au paiement!', 'success');
+            alert('✅ SUCCÈS! Dates: ' + selectedDates.from + ' → ' + selectedDates.to + '\n\nLe modal de paiement s\'ouvrirait ici.');
+        }
+
+        // Test create listing
+        function testCreateListing() {
+            log('--- Test Création Annonce ---');
+            const listing = {
+                id: Date.now(),
+                type: 'lodging',
+                title: 'Test Appartement ' + Date.now(),
+                location: 'Test Location',
+                price: '5000 DA',
+                status: 'pending'
+            };
+
+            const hostListings = JSON.parse(localStorage.getItem('host_listings') || '[]');
+            hostListings.push(listing);
+            localStorage.setItem('host_listings', JSON.stringify(hostListings));
+
+            log('✅ Annonce créée: ' + listing.title, 'success');
+            log('Total annonces: ' + hostListings.length);
+        }
+
+        // Test render listings
+        function testRenderListings() {
+            log('--- Test Affichage Annonces ---');
+            const hostListings = JSON.parse(localStorage.getItem('host_listings') || '[]');
+            log('Annonces dans localStorage: ' + hostListings.length);
+
+            if (hostListings.length === 0) {
+                log('⚠️ Aucune annonce trouvée', 'error');
+            } else {
+                hostListings.forEach((l, i) => {
+                    log((i + 1) + '. ' + l.title + ' (' + l.status + ')', 'success');
+                });
+            }
+        }
+
+        log('🚀 Test prêt! Cliquez sur l\'input dates puis sélectionnez une plage.');
+    </script>
+</body>
+
+</html>

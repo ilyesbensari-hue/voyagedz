@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Connexion - Voyage DZ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #e63946;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+
+        button:hover {
+            background: #d62839;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>🧪 Test de Connexion - Voyage DZ</h1>
+
+        <h2>Tests Disponibles :</h2>
+
+        <button onclick="testOpenLoginModal()">Test 1: Ouvrir Modal Login</button>
+        <button onclick="testShowLoginModal()">Test 2: showLoginModal()</button>
+        <button onclick="testAuthSystem()">Test 3: window.authSystem</button>
+        <button onclick="testLogin()">Test 4: Login avec host@voyagedz.com</button>
+
+        <div class="result" id="result">
+            <strong>Résultat :</strong> En attente de test...
+        </div>
+
+        <h3>État Actuel :</h3>
+        <div id="status"></div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h2>Connexion</h2>
+            <form id="login-form" onsubmit="return false;">
+                <input type="email" id="login-email" placeholder="Email" value="host@voyagedz.com">
+                <input type="password" id="login-password" placeholder="Mot de passe" value="host123">
+                <button type="button" onclick="handleLogin(event)">Se connecter</button>
+                <button type="button" onclick="closeLoginModal()">Fermer</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#e63946' : type === 'success' ? '#06ffa5' : '#fff';
+            resultDiv.innerHTML += `<div style="color: ${color}; margin: 5px 0;">[${timestamp}] ${message}</div>`;
+        }
+
+        function updateStatus() {
+            const statusDiv = document.getElementById('status');
+            const user = getCurrentUser();
+            const authSystemExists = typeof window.authSystem !== 'undefined';
+            const openLoginModalExists = typeof openLoginModal !== 'undefined';
+            const showLoginModalExists = typeof showLoginModal !== 'undefined';
+
+            statusDiv.innerHTML = `
+                <p>✓ auth.js chargé</p>
+                <p>${authSystemExists ? '✓' : '✗'} window.authSystem: ${authSystemExists}</p>
+                <p>${openLoginModalExists ? '✓' : '✗'} openLoginModal: ${openLoginModalExists}</p>
+                <p>${showLoginModalExists ? '✓' : '✗'} showLoginModal: ${showLoginModalExists}</p>
+                <p>Utilisateur connecté: ${user ? user.name : 'Aucun'}</p>
+            `;
+        }
+
+        function testOpenLoginModal() {
+            log('Test openLoginModal()...');
+            try {
+                if (typeof openLoginModal !== 'undefined') {
+                    openLoginModal();
+                    log('✅ openLoginModal() appelé avec succès', 'success');
+                } else {
+                    log('❌ openLoginModal() n\'existe pas', 'error');
+                }
+            } catch (error) {
+                log('❌ Erreur: ' + error.message, 'error');
+            }
+        }
+
+        function testShowLoginModal() {
+            log('Test showLoginModal()...');
+            try {
+                if (typeof showLoginModal !== 'undefined') {
+                    showLoginModal();
+                    log('✅ showLoginModal() appelé avec succès', 'success');
+                } else {
+                    log('❌ showLoginModal() n\'existe pas', 'error');
+                }
+            } catch (error) {
+                log('❌ Erreur: ' + error.message, 'error');
+            }
+        }
+
+        function testAuthSystem() {
+            log('Test window.authSystem...');
+            if (window.authSystem) {
+                log('✅ window.authSystem existe', 'success');
+                log('Méthodes disponibles: ' + Object.keys(window.authSystem).join(', '));
+
+                if (window.authSystem.openLoginModal) {
+                    window.authSystem.openLoginModal();
+                    log('✅ Modal ouvert via authSystem', 'success');
+                }
+            } else {
+                log('❌ window.authSystem n\'existe pas', 'error');
+            }
+        }
+
+        async function testLogin() {
+            log('Test login avec host@voyagedz.com...');
+            try {
+                if (window.authSystem && window.authSystem.login) {
+                    const user = await authSystem.login('host@voyagedz.com', 'host123');
+                    log('✅ Login réussi: ' + user.name, 'success');
+                    updateStatus();
+                } else if (typeof login !== 'undefined') {
+                    const user = await login('host@voyagedz.com', 'host123');
+                    log('✅ Login réussi: ' + user.name, 'success');
+                    updateStatus();
+                } else {
+                    log('❌ Aucune fonction login disponible', 'error');
+                }
+            } catch (error) {
+                log('❌ Erreur login: ' + error.message, 'error');
+            }
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.remove('active');
+            log('Modal fermé');
+        }
+
+        // Init
+        updateStatus();
+        setInterval(updateStatus, 2000);
+    </script>
+</body>
+
+</html>

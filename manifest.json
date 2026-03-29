@@ -1,0 +1,27 @@
+{
+    "name": "Voyage DZ",
+    "short_name": "VoyageDZ",
+    "description": "Découvrez l'Algérie - Logements, Activités et Expériences à Alger, Oran et Tlemcen",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0F0F1E",
+    "theme_color": "#E63946",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["travel", "lifestyle"],
+    "lang": "fr-DZ",
+    "dir": "ltr"
+}

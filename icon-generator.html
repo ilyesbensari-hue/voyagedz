@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur d'Icônes - Voyage DZ</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0F0F1E;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        canvas {
+            border: 2px solid #E63946;
+            margin: 1rem;
+            border-radius: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #E63946 0%, #F4A261 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Générateur d'Icônes PWA - Voyage DZ</h1>
+    <p>Téléchargez les icônes PNG pour votre application</p>
+
+    <div>
+        <canvas id="canvas192" width="192" height="192"></canvas>
+        <canvas id="canvas512" width="512" height="512"></canvas>
+    </div>
+
+    <div>
+        <button onclick="downloadIcon(192)">Télécharger 192x192</button>
+        <button onclick="downloadIcon(512)">Télécharger 512x512</button>
+    </div>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const ctx = canvas.getContext('2d');
+
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#E63946');
+            gradient.addColorStop(1, '#F4A261');
+
+            // Rounded rectangle
+            const radius = size * 0.22;
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.fill();
+
+            // Location pin
+            ctx.strokeStyle = 'white';
+            ctx.fillStyle = 'white';
+            ctx.lineWidth = size * 0.0625;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const cx = size / 2;
+            const cy = size * 0.39;
+            const pinRadius = size * 0.094;
+
+            // Pin circle
+            ctx.beginPath();
+            ctx.arc(cx, cy, pinRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pin stem
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx, size * 0.79);
+            ctx.stroke();
+
+            // Arrows
+            ctx.beginPath();
+            ctx.moveTo(cx, size * 0.47);
+            ctx.lineTo(cx + size * 0.156, size * 0.625);
+            ctx.moveTo(cx, size * 0.47);
+            ctx.lineTo(cx - size * 0.156, size * 0.625);
+            ctx.stroke();
+
+            // Text "DZ"
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.125}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('DZ', cx, size * 0.913);
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Draw icons on load
+        drawIcon(192);
+        drawIcon(512);
+    </script>
+</body>
+
+</html>

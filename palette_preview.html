@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options de Couleurs Voyage DZ</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #FAFAF9;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        .swatch {
+            height: 150px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 1.2rem;
+        }
+
+        .info {
+            padding: 15px;
+        }
+
+        .name {
+            font-weight: 700;
+            color: #1e293b;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .desc {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        /* OPTION 1: Bronze */
+        .opt-1 {
+            background: linear-gradient(135deg, #E07B53 0%, #B87333 100%);
+        }
+
+        /* OPTION 2: Chocolat */
+        .opt-2 {
+            background: linear-gradient(135deg, #E07B53 0%, #5D4037 100%);
+        }
+
+        /* OPTION 3: Bordeaux */
+        .opt-3 {
+            background: linear-gradient(135deg, #E07B53 0%, #800020 100%);
+        }
+
+        /* OPTION 4: Sienne (Actuel) */
+        .opt-4 {
+            background: linear-gradient(135deg, #D97757 0%, #A0522D 100%);
+        }
+
+        /* OPTION 5: Ocre */
+        .opt-5 {
+            background: linear-gradient(135deg, #E07B53 0%, #DAA520 100%);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Palette "Luxe & Chaleur"</h1>
+    <div class="grid">
+        <div class="card">
+            <div class="swatch opt-1">1. Bronze</div>
+            <div class="info">
+                <span class="name">Terracotta & Bronze</span>
+                <span class="desc">Chaud, métallique, éclatant. Très solaire.</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="swatch opt-2">2. Chocolat</div>
+            <div class="info">
+                <span class="name">Terracotta & Chocolat</span>
+                <span class="desc">Profond, mat, velouté. Très "Terre".</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="swatch opt-3">3. Bordeaux</div>
+            <div class="info">
+                <span class="name">Terracotta & Bordeaux</span>
+                <span class="desc">Royal, noble, passionné. Très "Luxe".</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="swatch opt-4">4. Sienne (Actuel)</div>
+            <div class="info">
+                <span class="name">Terracotta & Sienne</span>
+                <span class="desc">Naturel, équilibré, cuivré.</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="swatch opt-5">5. Ocre Doré</div>
+            <div class="info">
+                <span class="name">Terracotta & Ocre</span>
+                <span class="desc">Lumineux, désertique, vibrant.</span>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
