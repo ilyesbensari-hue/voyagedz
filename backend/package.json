@@ -1,25 +1,21 @@
 {
     "name": "voyage-dz-backend",
-    "version": "1.0.0",
-    "description": "Backend API pour Voyage DZ - Plateforme de réservation touristique en Algérie",
+    "version": "3.0.0",
+    "description": "Backend API pour Voyage DZ - PostgreSQL (Neon)",
     "main": "server.js",
+    "engines": {
+        "node": ">=18.x"
+    },
     "scripts": {
         "start": "node server.js",
         "dev": "node --watch server.js",
-        "init-db": "node init-db.js",
         "init-pg": "node init-pg.js"
     },
-    "keywords": [
-        "algeria",
-        "tourism",
-        "booking",
-        "travel"
-    ],
+    "keywords": ["algeria", "tourism", "booking", "travel", "oran", "tlemcen"],
     "author": "Voyage DZ",
     "license": "MIT",
     "dependencies": {
         "bcryptjs": "^2.4.3",
-        "better-sqlite3": "^9.2.2",
         "cors": "^2.8.5",
         "dotenv": "^16.4.5",
         "express": "^4.18.2",

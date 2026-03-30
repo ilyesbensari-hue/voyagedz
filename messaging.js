@@ -1,6 +1,12 @@
 // ==========================================
 // MESSAGING SYSTEM - Chat UI
 // ==========================================
+// NOTE: The main messaging UI (page, conversations list, chat view) is
+// now handled directly in app.js (renderConversations, openChat, etc.)
+// This file is kept for:
+//   - MessagingSystem.startConversation() — used by listing detail pages
+//   - CSS styles for the message modal
+// ==========================================
 
 const MessagingSystem = {
     conversations: [],
@@ -8,17 +14,9 @@ const MessagingSystem = {
     messages: [],
     pollingInterval: null,
 
-    // ==========================================
-    // Initialize
-    // ==========================================
+    // Disabled: handled by app.js updateMessagesBadge()
     async init() {
-        // Load conversations
-        await this.loadConversations();
-
-        // Start polling for new messages
-        this.startPolling();
-
-        console.log('💬 Messaging System initialized');
+        console.log('💬 MessagingSystem: init delegated to app.js');
     },
 
     // ==========================================

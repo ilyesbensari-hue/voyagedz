@@ -3,12 +3,13 @@
 // Connexion au backend Node.js
 // ==========================================
 
-// Auto-detect environment (works for both Docker and local development)
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000/api'
-    : `${window.location.protocol}//${window.location.hostname}:3000/api`;
+// Auto-detect environment:
+// - localhost / 127.0.0.1  → backend running on port 3000 locally
+// - production (Vercel, custom domain) → use relative /api (proxied by vercel.json)
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocal ? 'http://localhost:3000/api' : '/api';
 
-console.log('🌐 API Client initialized with URL:', API_URL);
+console.log('🌐 API Client initialized:', API_URL, isLocal ? '(local)' : '(production)');
 
 // Token management
 const getToken = () => localStorage.getItem('auth_token');

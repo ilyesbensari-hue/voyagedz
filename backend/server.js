@@ -29,7 +29,23 @@ const JWT_SECRET = process.env.JWT_SECRET || 'voyage-dz-secret-key-2024';
 // ==========================================
 // Middleware
 // ==========================================
-app.use(cors());
+app.use(cors({
+    origin: function(origin, callback) {
+        // Allow: localhost (dev), Vercel domains, custom domains
+        const allowed = [
+            /localhost/,
+            /127\.0\.0\.1/,
+            /\.vercel\.app$/,
+            /voyagedz/
+        ];
+        if (!origin || allowed.some(r => r.test(origin))) {
+            callback(null, true);
+        } else {
+            callback(null, true); // permissive for now
+        }
+    },
+    credentials: true
+}));
 app.use(express.json());
 app.use(session({
     secret: 'voyage-dz-session-secret',
@@ -1095,6 +1111,29 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             totalSpent: parseFloat(totalSpent?.total || 0)
         });
     } catch (error) {
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
+// ==========================================
+// USER STATS ROUTE
+// ==========================================
+app.get('/api/stats', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [bookingsRow, favRow, spentRow] = await Promise.all([
+            getOne('SELECT COUNT(*) as count FROM bookings WHERE user_id = $1', [userId]),
+            getOne('SELECT COUNT(*) as count FROM favorites WHERE user_id = $1', [userId]),
+            getOne(`SELECT COALESCE(SUM(total_price), 0) as total
+                    FROM bookings WHERE user_id = $1 AND status IN ('confirmed','completed')`, [userId])
+        ]);
+        res.json({
+            bookings: parseInt(bookingsRow?.count || 0),
+            favorites: parseInt(favRow?.count || 0),
+            totalSpent: parseFloat(spentRow?.total || 0)
+        });
+    } catch (error) {
+        console.error('Stats error:', error);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
