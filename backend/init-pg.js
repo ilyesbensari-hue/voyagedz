@@ -289,30 +289,22 @@ async function init() {
         console.log('✅ Languages seeded');
 
         // ==========================================
-        // Seed Cities
+        // Seed Cities — Oran & Tlemcen uniquement
         // ==========================================
         const cities = [
-            ['Alger','alger','16','La capitale blanche face à la Méditerranée',
-             'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Algiers_coast_panorama.jpg/1280px-Algiers_coast_panorama.jpg',36.7538,3.0588],
-            ['Oran','oran','31','La perle de la Méditerranée',
-             'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Vue_sur_le_Port_d%27Oran.jpg/1280px-Vue_sur_le_Port_d%27Oran.jpg',35.6969,-0.6331],
-            ['Tlemcen','tlemcen','13',"La perle du Maghreb, ville d'histoire et de culture",
-             'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Mansourah_tlemcen.jpg/1280px-Mansourah_tlemcen.jpg',34.8828,-1.3167],
-            ['Constantine','constantine','25','La ville des ponts suspendus',
-             'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Constantine_Algeria.jpg/1280px-Constantine_Algeria.jpg',36.3650,6.6147],
-            ['Béjaïa','bejaia','06','Bougie, entre mer et montagnes',
-             'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bejaia_port.jpg/1280px-Bejaia_port.jpg',36.7509,5.0567],
-            ['Ghardaïa','ghardaia','47',"La vallée du M'Zab, patrimoine mondial UNESCO",
-             'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Ghardaia.jpg/1280px-Ghardaia.jpg',32.4900,3.6700],
+            ['Oran','oran','31','La perle de la Méditerranée, ville cosmopolite et vibrante',
+             'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Vue_sur_le_Port_d%27Oran.jpg/1280px-Vue_sur_le_Port_d%27Oran.jpg',35.6969,-0.6331,1],
+            ['Tlemcen','tlemcen','13',"La perle du Maghreb, capitale de l'art et de la culture andalouse",
+             'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Mansourah_tlemcen.jpg/1280px-Mansourah_tlemcen.jpg',34.8828,-1.3167,1],
         ];
-        for (const [name,slug,wilaya,desc,img,lat,lng] of cities) {
+        for (const [name,slug,wilaya,desc,img,lat,lng,featured] of cities) {
             await client.query(
-                `INSERT INTO cities (name,slug,wilaya_code,description,image,latitude,longitude)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (slug) DO NOTHING`,
-                [name,slug,wilaya,desc,img,lat,lng]
+                `INSERT INTO cities (name,slug,wilaya_code,description,image,latitude,longitude,featured)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (slug) DO NOTHING`,
+                [name,slug,wilaya,desc,img,lat,lng,featured]
             );
         }
-        console.log('✅ Cities seeded');
+        console.log('✅ Cities seeded: Oran, Tlemcen');
 
         // ==========================================
         // Seed Amenities
@@ -340,7 +332,7 @@ async function init() {
         console.log('✅ Amenities seeded');
 
         // ==========================================
-        // Seed Listings (Lodging + Activities)
+        // Seed Listings (Oran + Tlemcen)
         // ==========================================
         const host = (await client.query(`SELECT id FROM users WHERE email='host@voyagedz.com'`)).rows[0];
         const getCityId = async (slug) => {
@@ -356,7 +348,6 @@ async function init() {
             return r.rows[0]?.id;
         };
 
-        // Insert a listing and return its id
         const insertListing = async (data) => {
             const r = await client.query(`
                 INSERT INTO listings (
@@ -381,28 +372,61 @@ async function init() {
             return r.rows[0].id;
         };
 
-        // Lodgings
+        // ==========================================
+        // ORAN — Hébergements
+        // ==========================================
         const lodgings = [
-            { city:'alger', type:'lodging', title:"Appartement Vue Mer - Baie d'Alger",
-              location:'Alger Centre, Alger', price:8500, rating:4.9, reviews:127,
-              image:'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
-              description:"Superbe appartement avec vue panoramique sur la baie d'Alger.",
-              amenities:['WiFi','Climatisation','Cuisine équipée','Parking','Balcon','TV'], maxGuests:4 },
-            { city:'alger', type:'lodging', title:'Villa Moderne Hydra',
-              location:'Hydra, Alger', price:15000, rating:5.0, reviews:89,
-              image:'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80',
-              description:"Villa luxueuse dans le quartier résidentiel d'Hydra. Jardin privé et piscine.",
-              amenities:['WiFi','Piscine','Jardin','Parking','Sécurité 24/7','Cuisine équipée'], maxGuests:8 },
-            { city:'oran', type:'lodging', title:'Appartement Front de Mer',
-              location:'Les Andalouses, Oran', price:7000, rating:4.8, reviews:142,
-              image:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80',
-              description:'Réveillez-vous face à la Méditerranée dans cet appartement moderne.',
-              amenities:['WiFi','Climatisation','Vue mer','Parking'], maxGuests:6 },
-            { city:'tlemcen', type:'lodging', title:"Maison d'Hôtes Andalouse",
-              location:'Centre historique, Tlemcen', price:5500, rating:4.9, reviews:112,
-              image:'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
-              description:'Maison traditionnelle andalouse au cœur de la médina de Tlemcen.',
-              amenities:['WiFi','Petit-déjeuner','Terrasse'], maxGuests:5 },
+            {
+                city: 'oran', type: 'lodging',
+                title: 'Appartement Vue Mer - Les Andalouses',
+                location: 'Les Andalouses, Oran', price: 7500, rating: 4.9, reviews: 142,
+                image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80',
+                description: "Réveillez-vous face à la Méditerranée dans cet appartement moderne et lumineux. Accès direct à la plage, vue panoramique sur la mer. Idéal pour les familles et couples.",
+                amenities: ['WiFi', 'Climatisation', 'Vue mer', 'Parking', 'Balcon', 'TV'], maxGuests: 6
+            },
+            {
+                city: 'oran', type: 'lodging',
+                title: "Villa Contemporaine - Hauts d'Oran",
+                location: "Hauts d'Oran, Oran", price: 12000, rating: 4.8, reviews: 87,
+                image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80',
+                description: "Villa moderne avec piscine privée sur les hauteurs d'Oran. Vue imprenable sur la ville et la Méditerranée. Jardin paysager, barbecue, espace détente.",
+                amenities: ['WiFi', 'Piscine', 'Jardin', 'Parking', 'Climatisation', 'Cuisine équipée', 'Sécurité 24/7'], maxGuests: 10
+            },
+            {
+                city: 'oran', type: 'lodging',
+                title: 'Appartement Centre-Ville Rénové',
+                location: 'Plateau, Oran', price: 4500, rating: 4.7, reviews: 203,
+                image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
+                description: "Appartement entièrement rénové au cœur d'Oran, à deux pas du Théâtre Régional et du boulevard du Front de Mer. Transport en commun à proximité.",
+                amenities: ['WiFi', 'Climatisation', 'Cuisine équipée', 'TV', 'Ascenseur'], maxGuests: 4
+            },
+            // ==========================================
+            // TLEMCEN — Hébergements
+            // ==========================================
+            {
+                city: 'tlemcen', type: 'lodging',
+                title: "Maison d'Hôtes Andalouse — Médina",
+                location: 'Centre historique, Tlemcen', price: 5500, rating: 4.9, reviews: 178,
+                image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
+                description: "Authentique maison andalouse restaurée au cœur de la médina de Tlemcen. Patio central avec fontaine, zelliges traditionnels, ambiance hors du temps. Petit-déjeuner berbère offert.",
+                amenities: ['WiFi', 'Petit-déjeuner', 'Terrasse', 'Jardin', 'Climatisation'], maxGuests: 5
+            },
+            {
+                city: 'tlemcen', type: 'lodging',
+                title: 'Villa Mansourah avec Vue sur les Ruines',
+                location: 'Mansourah, Tlemcen', price: 9000, rating: 4.8, reviews: 94,
+                image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',
+                description: "Villa spacieuse face aux ruines médiévales de Mansourah. Cheminée en hiver, grande terrasse avec vue dégagée sur la plaine. Idéale pour un séjour culturel.",
+                amenities: ['WiFi', 'Parking', 'Terrasse', 'Vue montagne', 'Cuisine équipée', 'Jardin'], maxGuests: 8
+            },
+            {
+                city: 'tlemcen', type: 'lodging',
+                title: 'Riad El Andalous — Suite Royale',
+                location: 'Bab El Hadid, Tlemcen', price: 7000, rating: 5.0, reviews: 61,
+                image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80',
+                description: "Le summum du luxe andalou à Tlemcen. Suite royale avec bain maure privatif, hammam, salon maghrébin, service hôtelier complet. Une expérience unique au Maghreb.",
+                amenities: ['WiFi', 'Petit-déjeuner', 'Terrasse', 'Sécurité 24/7', 'Climatisation', 'TV'], maxGuests: 2
+            },
         ];
 
         for (const l of lodgings) {
@@ -415,62 +439,187 @@ async function init() {
                 );
             }
         }
-        console.log('✅ Lodgings seeded');
+        console.log('✅ Lodgings seeded (Oran x3 + Tlemcen x3)');
 
-        // Activities
+        // ==========================================
+        // ACTIVITÉS — Oran & Tlemcen
+        // ==========================================
         const activities = [
+            // --- ORAN ---
             {
-                city:'alger', type:'activity', category:'tours',
-                title:"Visite Guidée de la Casbah d'Alger",
-                description:"Découvrez l'histoire fascinante de la Casbah d'Alger, classée au patrimoine mondial de l'UNESCO.",
-                location:'Casbah, Alger', price:2500, original_price:3000, rating:4.8, reviews:312,
-                duration:'3 heures', duration_hours:3, duration_type:'hours',
-                meeting_point:'Place des Martyrs, devant la Mosquée Ketchaoua',
-                meeting_point_details:'Cherchez le guide avec le drapeau vert VoyageDZ.',
-                meeting_lat:36.7871, meeting_lng:3.0599,
-                what_to_bring:JSON.stringify(['Chaussures confortables','Bouteille d\'eau','Appareil photo']),
-                good_to_know:'Les ruelles sont étroites et pentues.',
-                languages:['fr','ar','en'], max_participants:12,
-                amenities:['Guide professionnel','Entrées incluses','Groupe restreint'],
-                image:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Casbah_d%27Alger.jpg/800px-Casbah_d%27Alger.jpg',
-                inclusions:[
-                    {item:'Guide local expert',included:1,icon:'👨‍🏫'},
-                    {item:'Thé à la menthe',included:1,icon:'🍵'},
-                    {item:'Entrée Palais des Raïs',included:1,icon:'🎫'},
-                    {item:'Transport',included:0,icon:'🚐'},
+                city: 'oran', type: 'activity', category: 'tours',
+                title: 'Visite Guidée du Fort Santa Cruz & Murdjajo',
+                description: "Découvrez le fort espagnol du XVIème siècle perché sur le mont Murdjajo avec une vue à 360° sur Oran, la mer et la plaine. Un guide local passionné vous raconte 500 ans d'histoire oranaise.",
+                location: 'Murdjajo, Oran', price: 1800, original_price: 2200, rating: 4.8, reviews: 312,
+                duration: '3h', duration_hours: 3, duration_type: 'hours',
+                meeting_point: "Parking du Téléphérique, Boulevard de l'ALN",
+                meeting_point_details: 'Cherchez le guide avec le drapeau vert au pied du téléphérique.',
+                meeting_lat: 35.7022, meeting_lng: -0.6417,
+                what_to_bring: JSON.stringify(['Chaussures de marche', 'Bouteille d\'eau', 'Coupe-vent', 'Appareil photo']),
+                good_to_know: 'Le téléphérique peut être fermé par grand vent. Vêtements couvrants recommandés.',
+                languages: ['fr', 'ar', 'es'], max_participants: 15,
+                amenities: ['Guide professionnel', 'Transport inclus', 'Entrées incluses'],
+                image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Fort_Santa_Cruz_Oran.jpg/1280px-Fort_Santa_Cruz_Oran.jpg',
+                inclusions: [
+                    { item: 'Guide local expert', included: 1, icon: '👨‍🏫' },
+                    { item: 'Billet téléphérique A/R', included: 1, icon: '🚡' },
+                    { item: 'Entrée Fort Santa Cruz', included: 1, icon: '🎫' },
+                    { item: 'Repas', included: 0, icon: '🍽️' },
+                    { item: 'Transport depuis Tlemcen', included: 0, icon: '🚐' },
                 ],
-                itinerary:[
-                    {order:1,name:'Mosquée Ketchaoua',desc:'Point de départ',dur:15},
-                    {order:2,name:'Palais des Raïs',desc:'Visite du complexe palatial',dur:45},
-                    {order:3,name:'Ruelles de la Casbah',desc:'Promenade dans le dédale',dur:60},
+                itinerary: [
+                    { order: 1, name: 'Point de rendez-vous', desc: 'Accueil au pied du téléphérique', dur: 10 },
+                    { order: 2, name: 'Montée en téléphérique', desc: 'Vue panoramique sur la baie d\'Oran', dur: 10 },
+                    { order: 3, name: 'Fort Santa Cruz', desc: 'Visite complète du fort espagnol', dur: 60 },
+                    { order: 4, name: 'Chapelle Santa Cruz', desc: 'Chapelle historique et panorama', dur: 30 },
+                    { order: 5, name: 'Pause photo & retour', desc: 'Descente et photos souvenirs', dur: 20 },
                 ],
-                departure_cities:['oran','constantine'],
+                departure_cities: ['tlemcen'],
             },
             {
-                city:'oran', type:'activity', category:'tours',
-                title:'Découverte du Fort Santa Cruz',
-                description:"Montez au Murdjajo pour explorer le fort espagnol Santa Cruz.",
-                location:'Murdjajo, Oran', price:1800, rating:4.7, reviews:221,
-                duration:'2h30', duration_hours:2.5, duration_type:'hours',
-                meeting_point:"Parking du téléphérique, Boulevard de l'ALN",
-                meeting_point_details:'RDV au pied du téléphérique.',
-                meeting_lat:35.7022, meeting_lng:-0.6417,
-                what_to_bring:JSON.stringify(['Chaussures de marche','Coupe-vent']),
-                good_to_know:'Prévoyez une veste car il peut faire frais en altitude.',
-                languages:['fr','ar','es'], max_participants:15,
-                amenities:['Guide professionnel','Transport inclus'],
-                image:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Fort_Santa_Cruz_Oran.jpg/1280px-Fort_Santa_Cruz_Oran.jpg',
-                inclusions:[
-                    {item:'Guide local',included:1,icon:'👨‍🏫'},
-                    {item:'Billet téléphérique A/R',included:1,icon:'🚡'},
-                    {item:'Repas',included:0,icon:'🍽️'},
+                city: 'oran', type: 'activity', category: 'food',
+                title: 'Atelier Gastronomie Oranaise — Chorba & Tfina',
+                description: "Plongez dans les saveurs de la cuisine oranaise avec un chef local. Apprenez à préparer les emblématiques chorba beïda, tfina pkaïla et baklawa oranaise dans une cuisine familiale authentique.",
+                location: 'Quartier Sidi El Houari, Oran', price: 3500, rating: 4.9, reviews: 89,
+                duration: '4h', duration_hours: 4, duration_type: 'hours',
+                meeting_point: 'Place Sidi El Houari (devant la Grande Mosquée)',
+                meeting_point_details: 'Arrivez 5 minutes avant. Tablier fourni sur place.',
+                meeting_lat: 35.6969, meeting_lng: -0.6331,
+                what_to_bring: JSON.stringify(['Tenue confortable', 'Appétit !']),
+                good_to_know: 'Cuisine 100% halal. Prévenez en cas d\'allergie alimentaire.',
+                languages: ['fr', 'ar'], max_participants: 8,
+                amenities: ['Guide professionnel', 'Repas inclus', 'Équipement fourni', 'Groupe restreint'],
+                image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80',
+                inclusions: [
+                    { item: 'Chef local expert', included: 1, icon: '👨‍🍳' },
+                    { item: 'Tous ingrédients', included: 1, icon: '🛒' },
+                    { item: 'Repas complet dégusté', included: 1, icon: '🍲' },
+                    { item: 'Recettes imprimées', included: 1, icon: '📄' },
+                    { item: 'Transport', included: 0, icon: '🚐' },
                 ],
-                itinerary:[
-                    {order:1,name:'Téléphérique',desc:'Montée panoramique',dur:10},
-                    {order:2,name:'Fort Santa Cruz',desc:'Visite du fort espagnol',dur:45},
-                    {order:3,name:'Point de vue',desc:'Pause photo avec vue sur Oran',dur:30},
+                itinerary: [
+                    { order: 1, name: 'Visite du marché', desc: 'Sélection des épices et ingrédients frais', dur: 30 },
+                    { order: 2, name: 'Préparation chorba', desc: 'Soupe traditionnelle oranaise', dur: 45 },
+                    { order: 3, name: 'Tfina pkaïla', desc: 'Plat de résistance mijoté', dur: 60 },
+                    { order: 4, name: 'Baklawa', desc: 'Pâtisserie andalouse', dur: 30 },
+                    { order: 5, name: 'Dégustation', desc: 'Repas convivial en famille', dur: 45 },
                 ],
-                departure_cities:['alger','tlemcen'],
+                departure_cities: ['tlemcen'],
+            },
+            {
+                city: 'oran', type: 'activity', category: 'nature',
+                title: 'Plongée & Snorkeling — Côte des Andalouses',
+                description: "Explorez les fonds marins cristallins de la côte oranaise. Des instructeurs certifiés PADI vous accompagnent pour découvrir posidonies, mérous et poulpes dans des eaux à 22°C.",
+                location: 'Plage des Andalouses, Oran', price: 4500, rating: 4.7, reviews: 156,
+                duration: '3h30', duration_hours: 3.5, duration_type: 'hours',
+                meeting_point: 'Club nautique des Andalouses',
+                meeting_point_details: 'Parking gratuit sur place. Vestiaires disponibles.',
+                meeting_lat: 35.7200, meeting_lng: -0.7100,
+                what_to_bring: JSON.stringify(['Maillot de bain', 'Serviette', 'Crème solaire']),
+                good_to_know: 'Savoir nager est obligatoire. Non recommandé en cas de temps instable. Min 8 ans.',
+                languages: ['fr', 'ar', 'en'], max_participants: 10,
+                amenities: ['Guide professionnel', 'Équipement fourni', 'Groupe restreint'],
+                image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80',
+                inclusions: [
+                    { item: 'Équipement de plongée complet', included: 1, icon: '🤿' },
+                    { item: 'Instructeur certifié PADI', included: 1, icon: '👨‍🏫' },
+                    { item: 'Photos sous-marines', included: 1, icon: '📸' },
+                    { item: 'Déjeuner', included: 0, icon: '🍽️' },
+                ],
+                itinerary: [
+                    { order: 1, name: 'Briefing sécurité', desc: 'Formation et équipement', dur: 30 },
+                    { order: 2, name: 'Snorkeling côtier', desc: 'Exploration surface (débutants)', dur: 45 },
+                    { order: 3, name: 'Plongée site Epave', desc: 'Immersion 5-8m (confirmés)', dur: 60 },
+                    { order: 4, name: 'Retour & débrief', desc: 'Photos et certificat', dur: 15 },
+                ],
+                departure_cities: ['tlemcen'],
+            },
+            // --- TLEMCEN ---
+            {
+                city: 'tlemcen', type: 'activity', category: 'tours',
+                title: "Tlemcen Royale — Mosquée, Médersas & Art Zellij",
+                description: "La visite incontournable de Tlemcen : Grande Mosquée almoravide, medersa Tachfiniya, palais El Mechouar et les souks de potiers. Un guide historien vous révèle 1000 ans d'histoire arabo-andalouse.",
+                location: 'Vieille ville, Tlemcen', price: 2200, original_price: 2800, rating: 5.0, reviews: 287,
+                duration: '4h', duration_hours: 4, duration_type: 'hours',
+                meeting_point: 'Grande Mosquée de Tlemcen (Place Emir Abdelkader)',
+                meeting_point_details: 'Retrouvez le guide avec l\'étendard VoyageDZ devant l\'entrée principale.',
+                meeting_lat: 34.8828, meeting_lng: -1.3167,
+                what_to_bring: JSON.stringify(['Vêtements couvrants (mosquées)', 'Chaussures confortables', 'Appareil photo']),
+                good_to_know: 'Respect du code vestimentaire dans les lieux de culte. Entrée mosquée gratuite.',
+                languages: ['fr', 'ar', 'en', 'es'], max_participants: 12,
+                amenities: ['Guide professionnel', 'Entrées incluses', 'Groupe restreint'],
+                image: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&q=80',
+                inclusions: [
+                    { item: 'Guide historien certifié', included: 1, icon: '👨‍🏫' },
+                    { item: 'Entrée Medersa Tachfiniya', included: 1, icon: '🎫' },
+                    { item: 'Thé à la menthe en cours de visite', included: 1, icon: '🍵' },
+                    { item: 'Transport depuis Oran', included: 0, icon: '🚐' },
+                    { item: 'Repas', included: 0, icon: '🍽️' },
+                ],
+                itinerary: [
+                    { order: 1, name: 'Grande Mosquée', desc: 'Chef-d\'œuvre almoravide du XIe siècle', dur: 45 },
+                    { order: 2, name: 'Medersa Tachfiniya', desc: 'École coranique mérinide, zelliges fascinants', dur: 40 },
+                    { order: 3, name: 'Palais El Mechouar', desc: 'Ancienne résidence royale zianide', dur: 30 },
+                    { order: 4, name: 'Souk des potiers', desc: 'Artisanat traditionnel, shopping', dur: 35 },
+                    { order: 5, name: 'Café panoramique', desc: 'Thé et vue sur les remparts', dur: 30 },
+                ],
+                departure_cities: ['oran'],
+            },
+            {
+                city: 'tlemcen', type: 'activity', category: 'nature',
+                title: 'Randonnée Cascades de Lalla Setti',
+                description: "Trek de moyenne montagne jusqu'aux cascades et au plateau de Lalla Setti. Vue époustouflante à 1015m sur Tlemcen et la plaine jusqu'à la frontière marocaine. Forêts de cèdres et orchidées sauvages.",
+                location: 'Lalla Setti, Tlemcen', price: 1500, rating: 4.8, reviews: 134,
+                duration: '5h', duration_hours: 5, duration_type: 'hours',
+                meeting_point: 'Parking Forêt de Lalla Setti',
+                meeting_point_details: 'Départ groupé à 8h00 précises. Covoiturage organisé sur demande.',
+                meeting_lat: 34.9100, meeting_lng: -1.3300,
+                what_to_bring: JSON.stringify(['Chaussures de randonnée', 'Eau 2L minimum', 'Snacks', 'Protection solaire', 'Vêtements en couches']),
+                good_to_know: 'Niveau physique moyen requis. Dénivelé 450m. Annulé si pluie forte.',
+                languages: ['fr', 'ar'], max_participants: 12,
+                amenities: ['Guide professionnel', 'Équipement fourni', 'Groupe restreint'],
+                image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80',
+                inclusions: [
+                    { item: 'Guide de montagne local', included: 1, icon: '🧗' },
+                    { item: 'Pique-nique traditionnel', included: 1, icon: '🧺' },
+                    { item: 'Bâtons de randonnée', included: 1, icon: '🥾' },
+                    { item: 'Transport depuis Tlemcen-ville', included: 0, icon: '🚐' },
+                ],
+                itinerary: [
+                    { order: 1, name: 'Départ forêt', desc: 'Sentier des cèdres (pente douce)', dur: 60 },
+                    { order: 2, name: 'Cascades', desc: 'Pause photos et eau fraîche', dur: 30 },
+                    { order: 3, name: 'Plateau Lalla Setti', desc: 'Vue panoramique & pique-nique', dur: 60 },
+                    { order: 4, name: 'Retour sentier est', desc: 'Descente via les vignes', dur: 60 },
+                ],
+                departure_cities: ['oran'],
+            },
+            {
+                city: 'tlemcen', type: 'activity', category: 'tours',
+                title: 'Mansourah & Agadir — Cités Médiévales Perdues',
+                description: "Explorez les ruines grandioses de Mansourah (XIVe s.) et la cité aghlabide d'Agadir. Deux cités médiévales à ciel ouvert à 3km de Tlemcen, décor de cinéma, époustouflant au coucher du soleil.",
+                location: 'Mansourah, Tlemcen', price: 1800, rating: 4.9, reviews: 198,
+                duration: '3h', duration_hours: 3, duration_type: 'hours',
+                meeting_point: 'Minaret de Mansourah (route de Mansourah)',
+                meeting_point_details: 'Parking gratuit disponible devant le minaret.',
+                meeting_lat: 34.9020, meeting_lng: -1.3390,
+                what_to_bring: JSON.stringify(['Eau', 'Chapeau', 'Chaussures fermées', 'Appareil photo']),
+                good_to_know: 'Visite tôt le matin ou en fin d\'après-midi recommandée pour la luminosité photographique.',
+                languages: ['fr', 'ar', 'en'], max_participants: 15,
+                amenities: ['Guide professionnel', 'Groupe restreint', 'Photos incluses'],
+                image: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&q=80',
+                inclusions: [
+                    { item: 'Guide archéologue local', included: 1, icon: '🏛️' },
+                    { item: 'Accès aux deux sites', included: 1, icon: '🎫' },
+                    { item: 'Thé berbère au coucher du soleil', included: 1, icon: '🍵' },
+                    { item: 'Transport', included: 0, icon: '🚐' },
+                ],
+                itinerary: [
+                    { order: 1, name: 'Minaret de Mansourah', desc: 'Tour du XIVe s., symbole de la cité', dur: 30 },
+                    { order: 2, name: 'Ruines du Palais', desc: 'Enceinte royale mérinide', dur: 45 },
+                    { order: 3, name: 'Site d\'Agadir', desc: 'Cité plus ancienne, céramiques', dur: 45 },
+                    { order: 4, name: 'Coucher de soleil', desc: 'Thé et photos magiques', dur: 30 },
+                ],
+                departure_cities: ['oran'],
             },
         ];
 
@@ -510,27 +659,31 @@ async function init() {
                 );
             }
 
-            // Créer des slots pour les 30 prochains jours
+            // Créneaux pour les 45 prochains jours (matin + après-midi)
             const today = new Date();
-            for (let i = 1; i <= 30; i++) {
+            for (let i = 1; i <= 45; i++) {
                 const d = new Date(today);
                 d.setDate(today.getDate() + i);
                 const dateStr = d.toISOString().split('T')[0];
+                const isWeekend = d.getDay() === 5 || d.getDay() === 6; // Vendredi/Samedi
                 await client.query(
-                    `INSERT INTO activity_slots (listing_id,date,start_time,end_time,capacity,demand_level) VALUES ($1,$2,'09:00','12:00',$3,$4)`,
-                    [lid, dateStr, a.max_participants || 10, i % 7 === 0 ? 'high' : 'normal']
+                    `INSERT INTO activity_slots (listing_id,date,start_time,end_time,capacity,demand_level) VALUES ($1,$2,'09:00','13:00',$3,$4)`,
+                    [lid, dateStr, a.max_participants || 12, isWeekend ? 'high' : 'normal']
                 );
                 await client.query(
-                    `INSERT INTO activity_slots (listing_id,date,start_time,end_time,capacity,demand_level) VALUES ($1,$2,'14:00','17:00',$3,'normal')`,
-                    [lid, dateStr, a.max_participants || 10]
+                    `INSERT INTO activity_slots (listing_id,date,start_time,end_time,capacity,demand_level) VALUES ($1,$2,'14:00','18:00',$3,'normal')`,
+                    [lid, dateStr, a.max_participants || 12]
                 );
             }
         }
-        console.log('✅ Activities seeded');
+        console.log('✅ Activities seeded (Oran x3 + Tlemcen x3)');
         console.log('\n🎉 Database initialized successfully!');
         console.log('📧 Admin: admin@voyagedz.com / admin123');
         console.log('📧 Host:  host@voyagedz.com / host123');
         console.log('📧 User:  ismael@example.com / user123');
+        console.log('\n🏙️  Villes: Oran, Tlemcen');
+        console.log('🏠 Hébergements: 6 (3 Oran + 3 Tlemcen)');
+        console.log('🎯 Activités: 6 (3 Oran + 3 Tlemcen)');
 
     } finally {
         client.release();
@@ -542,3 +695,4 @@ init().catch(err => {
     console.error('❌ Init failed:', err);
     process.exit(1);
 });
+

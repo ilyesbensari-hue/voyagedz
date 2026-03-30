@@ -947,30 +947,19 @@ const navigateTo = (pageId) => {
         if (pageId === 'search') {
             renderSearchResults();
         } else if (pageId === 'bookings') {
-            // Check if user is host/admin to show received bookings vs. my trips
-            const user = API.auth.getUser();
-            if (user && (user.isHost || user.role === 'admin')) {
-                // Determine if we show "My Trips" or "Client Bookings"
-                // For now, let's show Client Bookings by default for Host in this view, 
-                // or maybe we need a toggle.
-                // Simpler: If Host Dashboard is separate, "Bookings" page in Profile usually means "My Trips".
-                // But the Host Dashboard has a "Reservations" entry? 
-
-                // Let's keep 'bookings' page for "My Trips" (bookings I made)
-                // And use 'host-dashboard' or a sub-view for "Client Bookings"
-                renderBookings();
-            } else {
-                renderBookings();
-            }
+            renderBookings();
         } else if (pageId === 'favorites') {
             renderFavorites();
         } else if (pageId === 'host-dashboard') {
-            // Render Host Dashboard Listings
-            if (window.ListingManager) {
-                window.ListingManager.renderHostListings();
-                // Also render bookings if there's a container for it in dashboard (optional)
-                // window.ListingManager.renderHostBookings(); 
-            }
+            if (window.ListingManager) window.ListingManager.renderHostListings();
+        } else if (pageId === 'messages') {
+            renderConversations();
+            // Poll unread badge
+            updateMessagesBadge();
+        } else if (pageId === 'admin') {
+            renderAdminPanel();
+        } else if (pageId === 'profile') {
+            renderProfileStats();
         }
     }
 
@@ -2746,9 +2735,18 @@ function updateAuthUI() {
                 becomeHostMenuItem.style.display = 'none';
             }
         }
+
+        // Show admin button for admin users
+        showAdminButton(user.role === 'admin');
+
+        // Update messages badge
+        updateMessagesBadge();
     } else {
         if (authButtons) authButtons.style.display = 'flex';
         if (userMenu) userMenu.style.display = 'none';
+        // Hide admin button
+        const adminBtn = document.getElementById('admin-panel-item');
+        if (adminBtn) adminBtn.style.display = 'none';
     }
 }
 
@@ -3003,3 +3001,278 @@ document.addEventListener('click', function (e) {
 // Initialize Mes annonces visibility on page load
 document.addEventListener('DOMContentLoaded', updateMyListingsVisibility);
 
+// ==========================================
+// MESSAGING SYSTEM
+// ==========================================
+
+let currentConversationId = null;
+
+async function renderConversations() {
+    const list = document.getElementById('conversations-list');
+    const empty = document.getElementById('messages-empty');
+    if (!list) return;
+
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    if (!token) {
+        list.innerHTML = '';
+        if (empty) {
+            empty.style.display = 'block';
+            empty.innerHTML = `
+                <div style="font-size:3rem;margin-bottom:1rem;">🔐</div>
+                <h3 style="color:var(--text-primary);">Connectez-vous</h3>
+                <p style="color:var(--text-secondary);">Vous devez être connecté pour voir vos messages.</p>
+                <button class="btn-primary" onclick="showLoginModal()" style="margin-top:1.5rem;">Se connecter</button>
+            `;
+        }
+        return;
+    }
+
+    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Chargement...</div>';
+
+    try {
+        const resp = await fetch('/api/messages', { headers: { Authorization: `Bearer ${token}` } });
+        const conversations = await resp.json();
+
+        if (!Array.isArray(conversations) || conversations.length === 0) {
+            list.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+
+        list.innerHTML = conversations.map(conv => {
+            const timeAgo = conv.last_message_at ? timeAgoFr(new Date(conv.last_message_at)) : '';
+            const unread = parseInt(conv.unread_count || 0);
+            return `
+            <div class="booking-card" onclick="openChat(${conv.id}, '${escapeHtml(conv.listing_title || 'Logement')}', '${escapeHtml(conv.other_user_name || 'Utilisateur')}')"
+                 style="cursor:pointer;transition:transform 0.15s;active:scale(0.98)">
+                <div style="display:flex;gap:1rem;align-items:center;">
+                    <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,var(--primary),#e76f51);">
+                        <img src="${conv.listing_image || ''}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;>🏠</div>'">
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                            <strong style="color:var(--text-primary);font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">${escapeHtml(conv.other_user_name || 'Utilisateur')}</strong>
+                            <span style="color:var(--text-secondary);font-size:0.75rem;flex-shrink:0;margin-left:0.5rem;">${timeAgo}</span>
+                        </div>
+                        <div style="color:var(--text-secondary);font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(conv.listing_title || '')}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+                            <span style="color:${unread > 0 ? 'var(--text-primary)' : 'var(--text-secondary)'};font-size:0.85rem;font-weight:${unread > 0 ? '600' : '400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${escapeHtml(conv.last_message || 'Démarrez la conversation...')}</span>
+                            ${unread > 0 ? `<span style="background:var(--primary);color:white;border-radius:50%;min-width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${unread}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    } catch (e) {
+        list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Erreur de chargement.</div>';
+    }
+}
+
+async function openChat(conversationId, listingTitle, otherUserName) {
+    currentConversationId = conversationId;
+    const chatView = document.getElementById('chat-view');
+    const chatTitle = document.getElementById('chat-title');
+    if (chatView) {
+        chatView.style.display = 'flex';
+        if (chatTitle) chatTitle.textContent = otherUserName || 'Conversation';
+        await loadChatMessages(conversationId);
+        // Focus input
+        const input = document.getElementById('chat-message-input');
+        if (input) setTimeout(() => input.focus(), 100);
+    }
+}
+
+window.closeChatView = function() {
+    const chatView = document.getElementById('chat-view');
+    if (chatView) chatView.style.display = 'none';
+    currentConversationId = null;
+    renderConversations(); // Refresh to update read state
+};
+
+async function loadChatMessages(conversationId) {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Chargement...</div>';
+
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    try {
+        const resp = await fetch(`/api/messages/${conversationId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const messages = await resp.json();
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+        container.innerHTML = messages.map(msg => {
+            const isMe = msg.sender_id === currentUser.id;
+            const time = new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            return `
+            <div style="display:flex;flex-direction:${isMe ? 'row-reverse' : 'row'};gap:0.5rem;align-items:flex-end;">
+                <div style="max-width:75%;background:${isMe ? 'var(--primary)' : 'rgba(255,255,255,0.08)'};color:${isMe ? 'white' : 'var(--text-primary)'};padding:0.65rem 1rem;border-radius:${isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px'};font-size:0.95rem;line-height:1.4;word-break:break-word;">
+                    ${escapeHtml(msg.content)}
+                    <div style="font-size:0.7rem;opacity:0.7;margin-top:0.25rem;text-align:right;">${time}</div>
+                </div>
+            </div>
+            `;
+        }).join('') || '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Aucun message. Soyez le premier à écrire !</div>';
+
+        // Scroll to bottom
+        container.scrollTop = container.scrollHeight;
+    } catch (e) {
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Erreur.</div>';
+    }
+}
+
+window.sendChatMessage = async function() {
+    const input = document.getElementById('chat-message-input');
+    const content = input?.value?.trim();
+    if (!content || !currentConversationId) return;
+
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const btn = document.getElementById('chat-send-btn');
+    if (btn) btn.disabled = true;
+    input.value = '';
+
+    try {
+        await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ conversationId: currentConversationId, content })
+        });
+        await loadChatMessages(currentConversationId);
+    } catch (e) {
+        input.value = content; // Restore on error
+    } finally {
+        if (btn) btn.disabled = false;
+        input.focus();
+    }
+};
+
+async function updateMessagesBadge() {
+    const badge = document.getElementById('messages-badge');
+    if (!badge) return;
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    if (!token) return;
+    try {
+        const resp = await fetch('/api/messages/unread/count', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await resp.json();
+        const count = parseInt(data.unread || 0);
+        badge.textContent = count > 9 ? '9+' : String(count);
+        badge.style.display = count > 0 ? 'block' : 'none';
+    } catch (e) { /* silently ignore */ }
+}
+
+// Poll messages badge every 30s when logged in
+setInterval(() => {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    if (token) updateMessagesBadge();
+}, 30000);
+
+// ==========================================
+// ADMIN PANEL
+// ==========================================
+
+async function renderAdminPanel() {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    if (!token) return navigateTo('home');
+    try {
+        // Load stats
+        const statsResp = await fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } });
+        if (statsResp.status === 403) { navigateTo('home'); return; }
+        const stats = await statsResp.json();
+        const s = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        s('admin-stat-users', stats.totalUsers || 0);
+        s('admin-stat-pending', stats.pendingListings || 0);
+        s('admin-stat-listings', stats.totalListings || 0);
+        s('admin-stat-bookings', stats.totalBookings || 0);
+
+        // Load pending listings by default
+        await loadAdminListings('pending');
+    } catch (e) { console.error('Admin panel error:', e); }
+}
+
+window.loadAdminListings = async function(status = 'pending') {
+    const container = document.getElementById('admin-listings-list');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Chargement...</div>';
+
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    try {
+        const url = status === 'all' ? '/api/admin/listings' : `/api/admin/listings?status=${status}`;
+        const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const listings = await resp.json();
+
+        if (!listings || listings.length === 0) {
+            container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);">✅ ${status === 'pending' ? 'Aucune annonce en attente de validation.' : 'Aucune annonce trouvée.'}</div>`;
+            return;
+        }
+
+        container.innerHTML = listings.map(l => {
+            const statusBadge = {
+                active: '<span style="background:#2a9d8f20;color:#2a9d8f;padding:2px 8px;border-radius:1rem;font-size:0.75rem;">Actif</span>',
+                pending: '<span style="background:#f4a26120;color:#f4a261;padding:2px 8px;border-radius:1rem;font-size:0.75rem;">En attente</span>',
+                inactive: '<span style="background:#e6394720;color:#e63947;padding:2px 8px;border-radius:1rem;font-size:0.75rem;">Inactif</span>',
+            }[l.status] || '';
+            return `
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-md);padding:1rem;display:flex;gap:1rem;align-items:center;">
+                <img src="${l.image || ''}" style="width:60px;height:60px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0;" onerror="this.src='https://via.placeholder.com/60x60/1a1a2e/ffffff?text=?'">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+                        <strong style="color:var(--text-primary);font-size:0.9rem;line-height:1.3;">${escapeHtml(l.title)}</strong>
+                        ${statusBadge}
+                    </div>
+                    <div style="color:var(--text-secondary);font-size:0.8rem;margin-top:0.25rem;">${escapeHtml(l.city_name || '')} · ${escapeHtml(l.host_name || '')} · ${Number(l.price).toLocaleString('fr-DZ')} DA</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.4rem;flex-shrink:0;">
+                    ${l.status !== 'active' ? `<button onclick="adminUpdateStatus(${l.id},'active')" style="background:#2a9d8f;color:white;border:none;padding:4px 10px;border-radius:0.5rem;cursor:pointer;font-size:0.75rem;">✓ Valider</button>` : ''}
+                    ${l.status !== 'inactive' ? `<button onclick="adminUpdateStatus(${l.id},'inactive')" style="background:#e63947;color:white;border:none;padding:4px 10px;border-radius:0.5rem;cursor:pointer;font-size:0.75rem;">✗ Désactiver</button>` : ''}
+                </div>
+            </div>
+            `;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Erreur de chargement.</div>';
+    }
+};
+
+window.adminUpdateStatus = async function(listingId, status) {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    try {
+        const resp = await fetch(`/api/listings/${listingId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ status })
+        });
+        if (resp.ok) {
+            if (window.authSystem && window.authSystem.showNotification) {
+                window.authSystem.showNotification(`✅ Annonce ${status === 'active' ? 'validée' : 'désactivée'}`, 'success');
+            }
+            await renderAdminPanel(); // Refresh
+        }
+    } catch (e) {
+        alert('Erreur: ' + e.message);
+    }
+};
+
+// Show admin button in dropdown for admin users
+function showAdminButton(isAdmin) {
+    const btn = document.getElementById('admin-panel-item');
+    if (btn) btn.style.display = isAdmin ? 'flex' : 'none';
+}
+
+// ==========================================
+// UTILITY HELPERS
+// ==========================================
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function timeAgoFr(date) {
+    const diff = (new Date() - date) / 1000;
+    if (diff < 60) return 'à l\'instant';
+    if (diff < 3600) return `${Math.floor(diff/60)} min`;
+    if (diff < 86400) return `${Math.floor(diff/3600)} h`;
+    if (diff < 604800) return `${Math.floor(diff/86400)} j`;
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
