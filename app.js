@@ -1264,8 +1264,11 @@ async function renderBookings() {
     container.innerHTML = '<div class="loading-spinner">Chargement des réservations...</div>';
 
     try {
-        const bookings = await API.bookings.getAll();
-        console.log('🔍 DEBUG: Bookings received:', bookings);
+        // Use ApiClient for backend PostgreSQL, fallback to API (localStorage)
+        const bookings = window.ApiClient
+            ? await ApiClient.bookings.getAll()
+            : await API.bookings.getAll();
+        console.log('🔍 Bookings received:', bookings?.length || 0, 'reservations');
 
         if (!bookings || bookings.length === 0) {
             container.innerHTML = `
@@ -1498,15 +1501,27 @@ async function processPayment() {
             btn.disabled = true;
         }
 
-        // Create booking via API
-        const booking = await API.bookings.create({
-            listingId: currentListing.id,
-            listing: currentListing, // Pass full object for fallback creation
-            dateFrom: dateFrom,
-            dateTo: dateTo,
-            guests: document.getElementById('guests-count')?.value || 1,
-            paymentMethod: paymentMethod
-        });
+        // Create booking via backend (ApiClient) first, fallback to localStorage
+        let booking;
+        if (window.ApiClient && localStorage.getItem('auth_token')) {
+            booking = await ApiClient.bookings.create({
+                listing_id: currentListing.id,
+                listing_details: currentListing,
+                date_from: dateFrom,
+                date_to: dateTo,
+                guests: parseInt(document.getElementById('guests-count')?.value || 1),
+                payment_method: paymentMethod
+            });
+        } else {
+            booking = await API.bookings.create({
+                listingId: currentListing.id,
+                listing: currentListing,
+                dateFrom: dateFrom,
+                dateTo: dateTo,
+                guests: document.getElementById('guests-count')?.value || 1,
+                paymentMethod: paymentMethod
+            });
+        }
 
         // Close modal
         closePaymentModal();
@@ -2718,14 +2733,15 @@ function updateAuthUI() {
         // Show/hide bookings menu item based on whether user has bookings
         const bookingsMenuItem = document.getElementById('bookings-menu-item');
         const bookingsProfileItem = document.getElementById('bookings-profile-item');
-        if (API && API.bookings) {
+        if (window.ApiClient && localStorage.getItem('auth_token')) {
+            ApiClient.bookings.getAll().then(bookings => {
+                if (bookingsMenuItem) bookingsMenuItem.style.display = bookings.length > 0 ? 'flex' : 'none';
+                if (bookingsProfileItem) bookingsProfileItem.style.display = bookings.length > 0 ? 'flex' : 'none';
+            }).catch(() => {});
+        } else if (API && API.bookings) {
             const bookings = API.bookings.getAll();
-            if (bookingsMenuItem) {
-                bookingsMenuItem.style.display = bookings.length > 0 ? 'flex' : 'none';
-            }
-            if (bookingsProfileItem) {
-                bookingsProfileItem.style.display = bookings.length > 0 ? 'flex' : 'none';
-            }
+            if (bookingsMenuItem) bookingsMenuItem.style.display = bookings.length > 0 ? 'flex' : 'none';
+            if (bookingsProfileItem) bookingsProfileItem.style.display = bookings.length > 0 ? 'flex' : 'none';
         }
 
         // Hide become host menu if already a host
@@ -3012,7 +3028,7 @@ async function renderConversations() {
     const empty = document.getElementById('messages-empty');
     if (!list) return;
 
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token') || localStorage.getItem('token');
     if (!token) {
         list.innerHTML = '';
         if (empty) {
@@ -3096,7 +3112,7 @@ async function loadChatMessages(conversationId) {
     if (!container) return;
     container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Chargement...</div>';
 
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token') || localStorage.getItem('token');
     try {
         const resp = await fetch(`/api/messages/${conversationId}`, { headers: { Authorization: `Bearer ${token}` } });
         const messages = await resp.json();
@@ -3127,7 +3143,7 @@ window.sendChatMessage = async function() {
     const content = input?.value?.trim();
     if (!content || !currentConversationId) return;
 
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token') || localStorage.getItem('token');
     const btn = document.getElementById('chat-send-btn');
     if (btn) btn.disabled = true;
     input.value = '';
@@ -3150,7 +3166,7 @@ window.sendChatMessage = async function() {
 async function updateMessagesBadge() {
     const badge = document.getElementById('messages-badge');
     if (!badge) return;
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token') || localStorage.getItem('token');
     if (!token) return;
     try {
         const resp = await fetch('/api/messages/unread/count', { headers: { Authorization: `Bearer ${token}` } });
@@ -3172,7 +3188,7 @@ setInterval(() => {
 // ==========================================
 
 async function renderAdminPanel() {
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token') || localStorage.getItem('token');
     if (!token) return navigateTo('home');
     try {
         // Load stats
@@ -3195,7 +3211,7 @@ window.loadAdminListings = async function(status = 'pending') {
     if (!container) return;
     container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Chargement...</div>';
 
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token') || localStorage.getItem('token');
     try {
         const url = status === 'all' ? '/api/admin/listings' : `/api/admin/listings?status=${status}`;
         const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -3235,7 +3251,7 @@ window.loadAdminListings = async function(status = 'pending') {
 };
 
 window.adminUpdateStatus = async function(listingId, status) {
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('voyagedz_token') || localStorage.getItem('token');
     try {
         const resp = await fetch(`/api/listings/${listingId}/status`, {
             method: 'PATCH',

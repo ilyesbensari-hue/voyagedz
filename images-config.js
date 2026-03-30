@@ -23,8 +23,8 @@ const IMAGES_CONFIG = {
     // VILLES
     // ==========================================
     cities: {
-        oran: 'https://i.pinimg.com/640x/e1/7b/e6/e17be6365e49c6e726f8a72de9c0388a.jpg',
-        tlemcen: 'https://fr.pinterest.com/pin/28991991342657201/',
+        oran: '/images/cities/oran.jpg',
+        tlemcen: '/images/cities/tlemcen.jpg',
         // Ajoutez d'autres villes ici...
     },
 

@@ -40,19 +40,46 @@ function setCurrentUser(user) {
 }
 
 /**
- * Login function (Delegates to API.js)
+ * Login function (Backend PostgreSQL first, localStorage fallback)
  */
 async function login(email, password) {
-    if (!window.API) {
-        console.error("API client not loaded");
-        throw new Error("Erreur système: API non chargée");
+    // Try real backend first (ApiClient uses JWT stored as 'auth_token')
+    if (window.ApiClient) {
+        try {
+            console.log('🔄 Auth.js calling ApiClient.auth.login (PostgreSQL backend)...');
+            const data = await ApiClient.auth.login(email, password);
+            // ApiClient stores JWT as 'auth_token' and returns {user, token}
+            const user = data.user || data;
+            // Also store under 'token' key for cross-module compatibility
+            if (localStorage.getItem('auth_token')) {
+                localStorage.setItem('token', localStorage.getItem('auth_token'));
+            }
+            // Store user info for getCurrentUser() compatibility
+            localStorage.setItem('voyagedz_user', JSON.stringify({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                isHost: user.isHost || user.is_host || false
+            }));
+            console.log('✅ Auth.js backend login success:', user.name);
+            return user;
+        } catch (backendError) {
+            console.warn('⚠️ Backend login failed, trying localStorage fallback:', backendError.message);
+        }
     }
 
+    // Fallback: localStorage-only mode
+    if (!window.API) {
+        throw new Error("Erreur système: API non chargée");
+    }
     try {
-        console.log('🔄 Auth.js calling API.auth.login...');
-        // API.auth.login handles the request and token storage
         const user = await API.auth.login(email, password);
-        console.log('✅ Auth.js login success, user:', user);
+        // Sync token keys
+        if (localStorage.getItem('token')) {
+            localStorage.setItem('auth_token', localStorage.getItem('token'));
+        }
+        console.log('✅ Auth.js localStorage login success:', user.name);
         return user;
     } catch (error) {
         console.error('❌ Auth.js login error:', error);
