@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "**/*",
+      "src": "Downloads/voyage-dz (1)/voyage-dz/index.html",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "Downloads/voyage-dz (1)/voyage-dz/$1"
     }
   ]
 }
