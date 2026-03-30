@@ -12,58 +12,45 @@ let selectedDates = {
     to: null
 };
 
+// Real listings from API (replaces static appData)
+let apiListings = [];
+let apiCities = [];
+
 // ==================== 
 // INITIALIZATION
 // ====================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Hide loading screen and show app
     setTimeout(() => {
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('app').style.display = 'block';
     }, 1500);
 
-    // Initialize app
-
-    // MERGE HOST LISTINGS
-    const hostListings = JSON.parse(localStorage.getItem('host_listings') || '[]');
-    if (hostListings.length > 0) {
-        const existingIds = new Set(appData.listings.map(l => l.id));
-        const newHostListings = hostListings.filter(l => !existingIds.has(l.id));
-        appData.listings = [...appData.listings, ...newHostListings];
-    }
-
-
-    // FETCH AMADEUS DATA (Async)
-    console.log('🔍 Checking window.Amadeus:', window.Amadeus);
-    if (window.Amadeus) {
-        setTimeout(async () => {
-            console.log('✈️ Starting Amadeus Search...');
-            try {
-                const results = await Promise.all([
-                    Amadeus.searchHotels('ALG'),
-                    Amadeus.searchHotels('ORN')
-                ]);
-
-                const amadeusHotels = results.flat();
-
-                if (amadeusHotels.length > 0) {
-                    console.log(`✅ Amadeus: ${amadeusHotels.length} found.`);
-                    appData.listings = [...appData.listings, ...amadeusHotels];
-
-                    // Re-render if on home page
-                    if (currentPage === 'home') {
-                        renderFeaturedListings();
-                    }
-                    // Re-render if on listings page
-                    if (currentPage === 'explore') {
-                        filterListings('all');
-                    }
-                }
-            } catch (err) {
-                console.error('Amadeus Error:', err);
-            }
-        }, 1000); // Increased delay to ensure load
+    // ============================================================
+    // LOAD REAL DATA FROM API (PostgreSQL Backend)
+    // ============================================================
+    try {
+        console.log('🌐 Loading data from API...');
+        const [listings, cities] = await Promise.all([
+            ApiClient.listings.getAll(),
+            ApiClient.cities.getAll()
+        ]);
+        apiListings = listings || [];
+        apiCities = cities || [];
+        // Keep appData in sync for legacy code compatibility
+        if (appData) {
+            appData.listings = apiListings;
+            appData.cities = apiCities.map(c => ({
+                ...c,
+                count: `${c.listings_count || 0} expériences`
+            }));
+        }
+        console.log(`✅ API: ${apiListings.length} annonces, ${apiCities.length} villes`);
+    } catch (err) {
+        console.warn('⚠️ API unavailable, using local data fallback:', err.message);
+        apiListings = (appData && appData.listings) ? appData.listings : [];
+        apiCities = (appData && appData.cities) ? appData.cities : [];
     }
 
     renderCities();
@@ -91,6 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('input[type="date"]').forEach(input => {
         input.setAttribute('min', today);
     });
+
+    // Populate city dropdowns
+    populateCityDropdowns();
 });
 
 // ==================== 
@@ -99,22 +89,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function renderCities() {
     const container = document.getElementById('cities-grid');
-    container.innerHTML = appData.cities.map(city => `
-        <div class="city-card" onclick="selectCity('${city.id}')">
-            <img src="${getCityImage(city.id, city.image)}" alt="${city.name}" class="city-image" onerror="this.src='https://via.placeholder.com/800x400/1a1a2e/ffffff?text=${city.name}'">
+    if (!container) return;
+    const cities = apiCities.length > 0 ? apiCities : (appData ? appData.cities : []);
+    container.innerHTML = cities.map(city => `
+        <div class="city-card" onclick="selectCity('${city.slug || city.id}')">
+            <img src="${city.image || getCityImage(city.id, city.image)}" alt="${city.name}" class="city-image" loading="lazy" onerror="this.src='https://via.placeholder.com/800x400/1a1a2e/ffffff?text=${encodeURIComponent(city.name)}'">
             <div class="city-overlay">
                 <h3 class="city-name">${city.name}</h3>
-                <p class="city-count">${city.count}</p>
+                <p class="city-count">${city.listings_count || city.count || 0} expériences</p>
             </div>
         </div>
     `).join('');
+
+    // Populate city dropdowns with real data
+    populateCityDropdowns();
+}
+
+function populateCityDropdowns() {
+    const cities = apiCities.length > 0 ? apiCities : (appData ? appData.cities : []);
+    const dropdowns = ['hero-city-select', 'search-city-filter'];
+    dropdowns.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const defaultOpt = el.querySelector('option[value=""]');
+        // Remove old city options
+        Array.from(el.querySelectorAll('option[data-city]')).forEach(o => o.remove());
+        cities.forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city.slug || city.id;
+            opt.textContent = `📍 ${city.name}`;
+            opt.dataset.city = 'true';
+            el.appendChild(opt);
+        });
+    });
 }
 
 function renderFeaturedListings() {
+    const listings = apiListings.length > 0 ? apiListings : (appData ? appData.listings : []);
+
     // Row 1 — Coups de cœur (mix, best rated)
     const container = document.getElementById('featured-listings');
     if (container) {
-        const featured = appData.listings.filter(l => l.rating >= 4.7 && l.type !== 'pack').slice(0, 8);
+        const featured = listings.filter(l => l.rating >= 4.7 && l.type !== 'pack').slice(0, 8);
         container.innerHTML = featured.length
             ? featured.map(listing => createListingCard(listing)).join('')
             : '<p style="padding:1rem;color:var(--text-secondary)">Aucune expérience disponible</p>';
@@ -123,7 +139,7 @@ function renderFeaturedListings() {
     // Row 2 — Hébergements
     const lodgingContainer = document.getElementById('home-lodging-listings');
     if (lodgingContainer) {
-        const lodgings = appData.listings.filter(l => l.type === 'lodging' && l.type !== 'pack').slice(0, 8);
+        const lodgings = listings.filter(l => l.type === 'lodging').slice(0, 8);
         lodgingContainer.innerHTML = lodgings.length
             ? lodgings.map(listing => createListingCard(listing)).join('')
             : '<p style="padding:1rem;color:var(--text-secondary)">Aucun hébergement disponible</p>';
@@ -132,7 +148,7 @@ function renderFeaturedListings() {
     // Row 3 — Activités
     const activityContainer = document.getElementById('home-activity-listings');
     if (activityContainer) {
-        const activities = appData.listings.filter(l => l.type === 'activity' && l.type !== 'pack').slice(0, 8);
+        const activities = listings.filter(l => l.type === 'activity').slice(0, 8);
         activityContainer.innerHTML = activities.length
             ? activities.map(listing => createListingCard(listing)).join('')
             : '<p style="padding:1rem;color:var(--text-secondary)">Aucune activité disponible</p>';
@@ -140,9 +156,11 @@ function renderFeaturedListings() {
 }
 
 function renderSearchResults(filter = 'all') {
+    const allListings = apiListings.length > 0 ? apiListings : (appData ? appData.listings : []);
+
     let results = currentCity
-        ? appData.listings.filter(l => l.city === currentCity)
-        : appData.listings;
+        ? allListings.filter(l => l.city_slug === currentCity || l.city === currentCity)
+        : allListings;
 
     // Exclude packs
     results = results.filter(l => l.type !== 'pack');
@@ -163,13 +181,9 @@ function renderSearchResults(filter = 'all') {
     // Render to list-view container
     const listContainer = document.getElementById('list-view');
     if (listContainer) {
-        listContainer.innerHTML = results.map(listing => createListingCard(listing, true)).join('');
-    }
-
-    // Also update the hidden search-results for compatibility
-    const container = document.getElementById('search-results');
-    if (container) {
-        container.innerHTML = results.map(listing => createListingCard(listing, true)).join('');
+        listContainer.innerHTML = results.length
+            ? results.map(listing => createListingCard(listing, true)).join('')
+            : '<p style="padding:2rem;text-align:center;color:var(--text-secondary)">Aucun résultat trouvé</p>';
     }
 
     // Update map if in map view
@@ -1195,12 +1209,12 @@ function setupEventListeners() {
             const selectedCity = heroCitySelect ? heroCitySelect.value : null;
             if (selectedCity) {
                 currentCity = selectedCity;
-                // Render with filter
-                const filtered = appData.listings.filter(l => l.city === selectedCity);
+                const allListings = apiListings.length > 0 ? apiListings : (appData ? appData.listings : []);
+                const filtered = allListings.filter(l => l.city_slug === selectedCity || l.city === selectedCity);
                 renderFilteredResults(filtered);
             } else {
                 currentCity = null;
-                renderSearchResults(); // Show all
+                renderSearchResults();
             }
             navigateTo('search');
         });
@@ -1279,10 +1293,10 @@ async function renderBookings() {
     } catch (error) {
         console.error('Erreur chargement réservations:', error);
         container.innerHTML = `
-        < div class="error-state" >
+            <div class="error-state">
                 <p>Impossible de charger vos réservations.</p>
                 <button class="btn-secondary" onclick="renderBookings()">Réessayer</button>
-            </div >
+            </div>
         `;
     }
 }
@@ -1294,7 +1308,6 @@ function createBookingCard(booking) {
         'cancelled': 'var(--error)',
         'completed': 'var(--text-secondary)'
     };
-
     const statusLabels = {
         'confirmed': 'Confirmé',
         'pending': 'En attente',
@@ -1302,38 +1315,51 @@ function createBookingCard(booking) {
         'completed': 'Terminé'
     };
 
-    const nights = API.utils.calculateNights(booking.dateFrom, booking.dateTo);
+    // Support both snake_case (API) and camelCase (legacy)
+    const dateFrom = booking.date_from || booking.dateFrom;
+    const dateTo = booking.date_to || booking.dateTo;
+    const totalPrice = booking.total_price || booking.totalPrice || 0;
+    const confirmCode = booking.confirmation_code || booking.confirmationCode || '-';
+    const listingTitle = booking.listing_title || (booking.listing && booking.listing.title) || 'Logement';
+    const listingImage = booking.listing_image || (booking.listing && booking.listing.image) || '';
+    const listingLocation = booking.listing_location || (booking.listing && booking.listing.location) || 'Algérie';
+
+    const from = dateFrom ? new Date(dateFrom) : null;
+    const to = dateTo ? new Date(dateTo) : null;
+    const nights = from && to ? Math.ceil((to - from) / (1000 * 60 * 60 * 24)) : 1;
+    const fmt = (d) => d ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '-';
+    const fmtPrice = (p) => Number(p).toLocaleString('fr-DZ') + ' DA';
 
     return `
-        < div class="booking-card" >
+        <div class="booking-card">
             <div class="booking-card-header">
-                <img src="${booking.listing.image}" alt="${booking.listing.title}" class="booking-image" onerror="this.src='https://via.placeholder.com/100x100/1a1a2e/ffffff?text=Image'">
+                <img src="${listingImage}" alt="${listingTitle}" class="booking-image" onerror="this.src='https://via.placeholder.com/100x100/1a1a2e/ffffff?text=Image'">
                 <div class="booking-info">
-                    <h3 class="booking-title">${booking.listing.title}</h3>
+                    <h3 class="booking-title">${listingTitle}</h3>
                     <p class="booking-location">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                             <circle cx="12" cy="10" r="3"/>
                         </svg>
-                        ${booking.listing.location}
+                        ${listingLocation}
                     </p>
-                    <span class="booking-status" style="background: ${statusColors[booking.status]}20; color: ${statusColors[booking.status]};">
-                        ${statusLabels[booking.status]}
+                    <span class="booking-status" style="background: ${(statusColors[booking.status] || '#888') + '20'}; color: ${statusColors[booking.status] || '#888'};">
+                        ${statusLabels[booking.status] || booking.status}
                     </span>
                 </div>
             </div>
             <div class="booking-card-body">
                 <div class="booking-detail">
                     <span class="booking-label">Code</span>
-                    <span class="booking-value">${booking.confirmationCode}</span>
+                    <span class="booking-value">${confirmCode}</span>
                 </div>
                 <div class="booking-detail">
                     <span class="booking-label">Arrivée</span>
-                    <span class="booking-value">${API.utils.formatDate(booking.dateFrom, { day: 'numeric', month: 'short' })}</span>
+                    <span class="booking-value">${fmt(from)}</span>
                 </div>
                 <div class="booking-detail">
                     <span class="booking-label">Départ</span>
-                    <span class="booking-value">${API.utils.formatDate(booking.dateTo, { day: 'numeric', month: 'short' })}</span>
+                    <span class="booking-value">${fmt(to)}</span>
                 </div>
                 <div class="booking-detail">
                     <span class="booking-label">Durée</span>
@@ -1343,22 +1369,24 @@ function createBookingCard(booking) {
             <div class="booking-card-footer">
                 <div class="booking-total">
                     <span class="booking-label">Total</span>
-                    <span class="booking-price">${API.utils.formatPrice(booking.totalPrice)}</span>
+                    <span class="booking-price">${fmtPrice(totalPrice)}</span>
                 </div>
                 ${booking.status === 'confirmed' ? `
                     <button class="btn-cancel" onclick="cancelBooking('${booking.id}')">Annuler</button>
                 ` : ''}
             </div>
-        </div >
-        `;
+        </div>
+    `;
 }
 
 async function cancelBooking(bookingId) {
     if (confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
         try {
-            await API.bookings.cancel(bookingId);
+            await ApiClient.bookings.cancel(bookingId);
             await renderBookings();
-            alert('✅ Réservation annulée avec succès.');
+            if (window.authSystem && window.authSystem.showNotification) {
+                window.authSystem.showNotification('✅ Réservation annulée avec succès.', 'success');
+            }
         } catch (error) {
             alert('❌ Erreur : ' + error.message);
         }
@@ -1369,27 +1397,31 @@ async function cancelBooking(bookingId) {
 // PROFILE STATS
 // ====================
 
-function renderProfileStats() {
+async function renderProfileStats() {
     const container = document.getElementById('profile-stats');
-    const stats = API.bookings.getStats();
-    const favCount = API.favorites.getAll().length;
+    if (!container) return;
 
-    container.innerHTML = `
-        < div class="stats-grid" >
-            <div class="stat-card">
-                <span class="stat-value">${stats.total}</span>
-                <span class="stat-label">Réservations</span>
+    try {
+        const stats = await ApiClient.stats.getUserStats();
+        container.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value">${stats.bookings || 0}</span>
+                    <span class="stat-label">Réservations</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value">${stats.favorites || 0}</span>
+                    <span class="stat-label">Favoris</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value">${Number(stats.totalSpent || 0).toLocaleString('fr-DZ')}</span>
+                    <span class="stat-label">Dépensé (DA)</span>
+                </div>
             </div>
-            <div class="stat-card">
-                <span class="stat-value">${favCount}</span>
-                <span class="stat-label">Favoris</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-value">${stats.totalSpent > 0 ? API.utils.formatPrice(stats.totalSpent).replace(' DA', '') : '0'}</span>
-                <span class="stat-label">Dépensé (DA)</span>
-            </div>
-        </div >
         `;
+    } catch (e) {
+        container.innerHTML = '';
+    }
 }
 
 // ==================== 
